@@ -45,4 +45,5 @@ export type SearchHit = {
   href: string
   image: string // new: thumbnail
   placeId?: ID // for event hits (and could mirror place for convenience)
+  nextEventStart?: string // ISO of next upcoming related event (event itself, or linked to place/performer)
 }

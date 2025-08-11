@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server'
-import { getDataSource, createRepositories } from '@/lib/dataSource'
+import { createRepositories, getDataSource } from '@/lib/dataSource'
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url)
+    const place = searchParams.get('place')
     const ds = getDataSource()
     const { events } = createRepositories(ds)
     const all = await events.all()
-    return NextResponse.json(all)
-  } catch (err) {
-    return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 })
+    const filtered = place ? all.filter(e => e.placeId === place) : all
+    return NextResponse.json({ events: filtered })
+  } catch (e) {
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
 }

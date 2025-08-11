@@ -16,6 +16,21 @@ export function buildSearchHits(query: string, data: SearchDataBuckets): SearchH
   const q = query.trim()
   if (!q) return []
   const { places, events, performers } = data
+  const now = Date.now()
+
+  // Precompute upcoming events per place and performer
+  const eventsByPlace = new Map<string, Event[]>()
+  const eventsByPerformer = new Map<string, Event[]>()
+  for (const ev of events) {
+    if (new Date(ev.end).getTime() < now) continue // past
+    if (!eventsByPlace.has(ev.placeId)) eventsByPlace.set(ev.placeId, [])
+    eventsByPlace.get(ev.placeId)!.push(ev)
+    for (const perfId of ev.performerIds) {
+      if (!eventsByPerformer.has(perfId)) eventsByPerformer.set(perfId, [])
+      eventsByPerformer.get(perfId)!.push(ev)
+    }
+  }
+  const pickSoonest = (arr?: Event[]) => arr && arr.length ? arr.slice().sort((a,b)=> new Date(a.start).getTime()-new Date(b.start).getTime())[0] : undefined
 
   const placeHits: SearchHit[] = places
     .filter(p =>
@@ -24,15 +39,19 @@ export function buildSearchHits(query: string, data: SearchDataBuckets): SearchH
       includes(p.address, q) ||
       p.tags.some(t => includes(t, q))
     )
-    .map(p => ({
-      type: 'place' as const,
-      id: p.id,
-      title: p.name,
-      subtitle: `${p.city} • ${p.tags.join(', ')}`,
-      href: `/places/${p.id}`,
-      image: p.image,
-      placeId: p.id,
-    }))
+    .map(p => {
+      const next = pickSoonest(eventsByPlace.get(p.id))
+      return {
+        type: 'place' as const,
+        id: p.id,
+        title: p.name,
+        subtitle: `${p.city} • ${p.tags.join(', ')}`,
+        href: `/places/${p.id}`,
+        image: p.image,
+        placeId: p.id,
+        nextEventStart: next?.start,
+      }
+    })
 
   const eventHits: SearchHit[] = events
     .filter(e => {
@@ -50,19 +69,24 @@ export function buildSearchHits(query: string, data: SearchDataBuckets): SearchH
         href: `/events/${e.id}`,
         image: e.image,
         placeId: e.placeId,
+        nextEventStart: e.start,
       }
     })
 
   const performerHits: SearchHit[] = performers
     .filter(a => includes(a.name, q) || includes(a.genre, q))
-    .map(a => ({
-      type: 'performer' as const,
-      id: a.id,
-      title: a.name,
-      subtitle: a.genre,
-      href: `/performers/${a.id}`,
-      image: a.image,
-    }))
+    .map(a => {
+      const next = pickSoonest(eventsByPerformer.get(a.id))
+      return {
+        type: 'performer' as const,
+        id: a.id,
+        title: a.name,
+        subtitle: a.genre,
+        href: `/performers/${a.id}`,
+        image: a.image,
+        nextEventStart: next?.start,
+      }
+    })
 
   // Tag hits (unique tags across places) if tag matches beginning
   const uniqueTags = Array.from(new Set(places.flatMap(p => p.tags)))

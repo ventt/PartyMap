@@ -216,6 +216,18 @@ export default function SearchBar() {
               <ul className="divide-y divide-zinc-200/60 dark:divide-white/10">
                 {items.map(({ hit, phase }) => {
                   const meta = typeMeta[hit.type]
+                  // Format next date relative local
+                  let dateLabel: string | null = null
+                  if (hit.nextEventStart) {
+                    const d = new Date(hit.nextEventStart)
+                    const now = new Date()
+                    const sameDay = d.toDateString() === now.toDateString()
+                    if (sameDay) dateLabel = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    else {
+                      const inYear = d.getFullYear() === now.getFullYear()
+                      dateLabel = d.toLocaleDateString([], { month: 'short', day: 'numeric', ...(inYear ? {} : { year: 'numeric' }) })
+                    }
+                  }
                   return (
                     <li
                       key={keyOf(hit)}
@@ -253,6 +265,11 @@ export default function SearchBar() {
                           </div>
                           <div className="truncate text-xs text-zinc-600 dark:text-zinc-300">{hit.subtitle}</div>
                         </div>
+                        {dateLabel && (
+                          <div className="ml-3 flex flex-col items-end text-right">
+                            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200 tabular-nums">{dateLabel}</span>
+                          </div>
+                        )}
                       </Link>
                     </li>
                   )
