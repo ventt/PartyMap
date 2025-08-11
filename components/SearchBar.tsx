@@ -23,6 +23,9 @@ export default function SearchBar() {
   // Animated list state
   type AnimatedItem = { hit: SearchHit; phase: 'enter' | 'idle' | 'leave' }
   const [items, setItems] = useState<AnimatedItem[]>([])
+  // Store base placeIds (all places represented in current results) to restore after hover
+  const basePlaceIdsRef = useRef<string[]>([])
+  const lastHoverPlaceIdRef = useRef<string | null>(null)
 
   // Icon + color mapping (dark near-black tints)
   const typeMeta: Record<SearchHit['type'], { icon: React.ReactNode; bg: string; ring: string; fg: string; label: string }> = {
@@ -66,6 +69,7 @@ export default function SearchBar() {
     const json = await r.json() as { hits: SearchHit[] }
     const newHits = json.hits
     const placeIds = Array.from(new Set(newHits.map(h => h.placeId).filter(Boolean))) as string[]
+    basePlaceIdsRef.current = placeIds
     emitHighlight(placeIds)
     setItems(newHits.map(h => ({ hit: h, phase: 'enter' as const })))
     setOpen(true)
@@ -109,6 +113,7 @@ export default function SearchBar() {
 
       // collect placeIds from hits (place hits & events referencing place)
       const placeIds = Array.from(new Set(newHits.map(h => h.placeId).filter(Boolean))) as string[]
+      basePlaceIdsRef.current = placeIds
       emitHighlight(placeIds)
 
       setItems(prev => {
@@ -212,7 +217,23 @@ export default function SearchBar() {
                 {items.map(({ hit, phase }) => {
                   const meta = typeMeta[hit.type]
                   return (
-                    <li key={keyOf(hit)} className={`item ${phase === 'enter' ? 'item-enter' : ''} ${phase === 'leave' ? 'item-leave' : ''}`}>
+                    <li
+                      key={keyOf(hit)}
+                      className={`item ${phase === 'enter' ? 'item-enter' : ''} ${phase === 'leave' ? 'item-leave' : ''}`}
+                      onMouseEnter={() => {
+                        // Focus map on single place/event place
+                        const placeId = hit.placeId || (hit.type === 'place' ? hit.id : undefined)
+                        if (placeId && lastHoverPlaceIdRef.current !== placeId) {
+                          lastHoverPlaceIdRef.current = placeId
+                          emitHighlight([placeId])
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        // Restore baseline highlight set
+                        lastHoverPlaceIdRef.current = null
+                        emitHighlight(basePlaceIdsRef.current)
+                      }}
+                    >
                       <Link
                         href={hit.href}
                         onClick={() => closeDropdown()}
