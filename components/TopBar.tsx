@@ -1,26 +1,39 @@
 'use client'
 import ThemeToggle from './ThemeToggle'
 import SearchBar from './SearchBar'
+import NavActions from './NavActions'
 import Link from 'next/link'
 
 export default function TopBar() {
   return (
-    <div className="fixed inset-x-0 top-0 z-[1200]">   {/* ⬅️ higher than Leaflet panes */}
+    <div className="fixed inset-x-0 top-0 z-[1200]">
       <div className="px-4">
-        <div className="flex h-16 items-center justify-between rounded-none   /* remove mt-2 */
+        {/* Desktop (md+): logo + search + nav items + theme */}
+        <div className="hidden md:flex h-16 items-center justify-between
                         bg-gradient-to-r from-violet-700/80 via-fuchsia-700/70 to-indigo-700/70
                         dark:from-violet-900/70 dark:via-fuchsia-900/60 dark:to-indigo-900/60
-                        backdrop-blur ring-0 px-3">
+                        backdrop-blur px-3">
           <Link href="/" className="text-white font-semibold tracking-tight">PartyMap</Link>
-          <div className="flex-1 mx-3 max-w-xl">
-            <div className="relative z-[1300]">       {/* ⬅️ dropdown sits above map */}
+
+          <div className="flex-1 mx-4 max-w-3xl">
+            <div className="relative z-[1300]">
               <SearchBar />
             </div>
           </div>
-          <ThemeToggle />
+
+          <div className="flex items-center gap-1">
+            <NavActions variant="desktop" />
+            <ThemeToggle />
+          </div>
+        </div>
+
+        {/* Mobile (<md): ONLY the search bar up top */}
+        <div className="md:hidden py-2">
+          <div className="relative z-[1300]">
+            <SearchBar />
+          </div>
         </div>
       </div>
     </div>
   )
 }
-
