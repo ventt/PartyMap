@@ -24,6 +24,23 @@ export default function SearchBar() {
   type AnimatedItem = { hit: SearchHit; phase: 'enter' | 'idle' | 'leave' }
   const [items, setItems] = useState<AnimatedItem[]>([])
 
+  // New: refetch current query when reopening
+  async function refetchCurrentIfNeeded() {
+    const q = query.trim()
+    if (!q) return
+    if (open) return // already open
+    // fetch fresh results
+    const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`)
+    const json = await r.json() as { hits: SearchHit[] }
+    const newHits = json.hits
+    const placeIds = Array.from(new Set(newHits.map(h => h.placeId).filter(Boolean))) as string[]
+    emitHighlight(placeIds)
+    setItems(newHits.map(h => ({ hit: h, phase: 'enter' as const })))
+    setOpen(true)
+    setContainerAnim('enter')
+    firstOpenRef.current = true
+  }
+
   // Outside click
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
@@ -115,7 +132,22 @@ export default function SearchBar() {
           placeholder="Search places, events, performers"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => { if (items.length) { setOpen(true); if (!firstOpenRef.current) { setContainerAnim('enter'); firstOpenRef.current = true } }} }
+          onFocus={() => {
+            if (query.trim()) {
+              if (!open) {
+                // If we have no items (or only leaving ones) refetch so user sees results again
+                if (!items.length || items.every(i => i.phase === 'leave')) {
+                  refetchCurrentIfNeeded()
+                  return
+                }
+                setOpen(true)
+                setContainerAnim('enter')
+                firstOpenRef.current = true
+              } else if (items.length) {
+                setOpen(true)
+              }
+            }
+          }}
         />
       </div>
 
