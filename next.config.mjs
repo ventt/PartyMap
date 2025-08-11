@@ -6,5 +6,6 @@ const nextConfig = {
       { protocol: 'https', hostname: 'picsum.photos' }
     ],
   },
+  output: 'standalone',
 }
 export default nextConfig
