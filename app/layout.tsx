@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh antialiased bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <ThemeProvider>
         <TopBar />
-        <div className="pt-16 pb-16 md:pb-0">{children}</div>
+        <div className="pt-20 pb-16 md:pb-0">{children}</div>
         <BottomBar />
       </ThemeProvider>
     </body>
