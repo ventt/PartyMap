@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic'
 import type { Place } from '@/lib/types'
 import { useTheme } from './ThemeProvider'
 import { useEffect, useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -20,6 +21,8 @@ export default function MapClient({ places }: { places: Place[] }) {
   const { theme } = useTheme()
   const [highlightIds, setHighlightIds] = useState<string[] | undefined>()
   const [activePlaceId, setActivePlaceId] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -44,6 +47,19 @@ export default function MapClient({ places }: { places: Place[] }) {
       window.removeEventListener('pm:close-popups', closeHandler as any)
     }
   }, [])
+
+  useEffect(() => {
+    const focus = searchParams?.get('focus')
+    if (focus) {
+      // highlight + open popup (FitToHighlights handles flyTo)
+      highlightPlaces([focus])
+      window.dispatchEvent(new CustomEvent('pm:open-place-popup', { detail: { placeId: focus } }))
+      // Optionally clean param (shallow)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('focus')
+      router.replace(url.pathname + url.search + url.hash, { scroll: false })
+    }
+  }, [searchParams, router])
 
   return <MapView places={places} isDark={theme === 'dark'} highlightIds={highlightIds} activePlaceId={activePlaceId} />
 }

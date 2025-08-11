@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Search, MapPin, CalendarDays, User2, Tag, LocateFixed } from 'lucide-react'
 import type { SearchHit } from '@/lib/types'
+import { usePathname, useRouter } from 'next/navigation'
 
 // helper to broadcast highlight IDs
 function emitHighlight(placeIds: string[]) {
@@ -29,6 +30,9 @@ export default function SearchBar() {
   const [containerAnim, setContainerAnim] = useState<'enter' | 'idle' | 'leave'>('idle')
   const rootRef = useRef<HTMLDivElement>(null)
   const firstOpenRef = useRef(false)
+  // navigation hooks
+  const pathname = usePathname()
+  const router = useRouter()
 
   // Animated list state
   type AnimatedItem = { hit: SearchHit; phase: 'enter' | 'idle' | 'leave' }
@@ -277,6 +281,12 @@ export default function SearchBar() {
                             onClick={(e) => {
                               e.preventDefault()
                               e.stopPropagation()
+                              if (pathname !== '/') {
+                                // Navigate to home with focus param so map can handle popup
+                                router.push(`/?focus=${encodeURIComponent(placeIdForFocus)}`)
+                                closeDropdown()
+                                return
+                              }
                               emitHighlight([placeIdForFocus])
                               emitOpenPlacePopup(placeIdForFocus)
                               closeDropdown()
