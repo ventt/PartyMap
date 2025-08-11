@@ -36,8 +36,11 @@ jobs:
 
       - name: Build & push
         run: |
-          docker build -t "$IMAGE" .
-          docker push "$IMAGE"
+          docker build -t ghcr.io/ventt/partymap:${{ github.sha }} .
+          docker push ghcr.io/ventt/partymap:${{ github.sha }}
+          docker tag ghcr.io/ventt/partymap:${{ github.sha }} ghcr.io/ventt/partymap:latest
+          docker push ghcr.io/ventt/partymap:latest
+
 
   deploy:
     needs: test_build_push
