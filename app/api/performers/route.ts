@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server'
-import { performers } from '@/lib/data/mock'
+import { getDataSource, createRepositories } from '@/lib/dataSource'
 
 export async function GET() {
-  return NextResponse.json(performers)
+  try {
+    const ds = getDataSource()
+    const { performers } = createRepositories(ds)
+    const all = await performers.all()
+    return NextResponse.json(all)
+  } catch {
+    return NextResponse.json({ error: 'Failed to fetch performers' }, { status: 500 })
+  }
 }

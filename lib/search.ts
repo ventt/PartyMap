@@ -1,12 +1,21 @@
-import type { SearchHit } from './types'
-import { events, performers, places } from './data/mock'
+import type { SearchHit, Event, Performer, Place } from './types'
 
 const norm = (s: string) => s.toLowerCase().normalize('NFKD')
 const includes = (text: string, q: string) => norm(text).includes(norm(q))
 
-export function searchAll(query: string): SearchHit[] {
+export interface SearchDataBuckets {
+  places: Place[]
+  events: Event[]
+  performers: Performer[]
+}
+
+/**
+ * Build search hits from provided domain collections (pure / side-effect free)
+ */
+export function buildSearchHits(query: string, data: SearchDataBuckets): SearchHit[] {
   const q = query.trim()
   if (!q) return []
+  const { places, events, performers } = data
 
   const placeHits: SearchHit[] = places
     .filter(p =>

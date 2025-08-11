@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server'
-import { events } from '@/lib/data/mock'
+import { getDataSource, createRepositories } from '@/lib/dataSource'
 
 export async function GET() {
-  return NextResponse.json(events)
+  try {
+    const ds = getDataSource()
+    const { events } = createRepositories(ds)
+    const all = await events.all()
+    return NextResponse.json(all)
+  } catch (err) {
+    return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 })
+  }
 }

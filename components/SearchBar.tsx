@@ -85,26 +85,25 @@ export default function SearchBar() {
         // items staying or entering
         const staying: AnimatedItem[] = newHits.map(h => {
           const k = keyOf(h)
-            const existing = prevMap.get(k)
-            if (existing) {
-              return { hit: h, phase: existing.phase === 'leave' ? 'idle' : 'idle' }
-            }
-            return { hit: h, phase: 'enter' }
+          const existing = prevMap.get(k)
+          if (existing) {
+            return { hit: h, phase: existing.phase === 'leave' ? 'idle' : 'idle' }
+          }
+          return { hit: h, phase: 'enter' }
         })
-        // items leaving
         const leaving: AnimatedItem[] = prev
           .filter(p => !nextKeys.has(keyOf(p.hit)) && p.phase !== 'leave')
           .map(p => ({ ...p, phase: 'leave' }))
         return [...staying, ...leaving]
       })
 
-      if (!open) {
+      // Always ensure dropdown opens for a non-empty query; only animate first open
+      if (!firstOpenRef.current) {
         setOpen(true)
         setContainerAnim('enter')
         firstOpenRef.current = true
-      } else if (containerAnim === 'enter') {
-        // after first animation settles
-        setContainerAnim('idle')
+      } else {
+        setOpen(true)
       }
     }, 200)
     return () => clearTimeout(t)

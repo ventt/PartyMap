@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { getDataSource } from '@/lib/dataSource'
+import { getDataSource, createRepositories } from '@/lib/dataSource'
 import { notFound } from 'next/navigation'
 import EventCard from '@/components/EventCard'
 
@@ -9,9 +9,10 @@ export const revalidate = 60
 export default async function PlacePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const ds = getDataSource()
-  const place = await ds.getPlace(id)
+  const { places, events } = createRepositories(ds)
+  const place = await places.byId(id)
   if (!place) return notFound()
-  const events = (await ds.getEvents()).filter(e => e.placeId === place.id)
+  const placeEvents = await events.byPlaceId(place.id)
 
   return (
     <main className="p-4 pb-24 md:pb-0">
@@ -31,8 +32,8 @@ export default async function PlacePage({ params }: { params: Promise<{ id: stri
       <section className="mt-4">
         <h2 className="mb-2 text-lg font-semibold">Upcoming events</h2>
         <div className="grid grid-cols-1 gap-3">
-          {events.length === 0 && <p className="text-sm text-zinc-600 dark:text-zinc-300">No events yet.</p>}
-          {events.map(e => <EventCard key={e.id} event={e} place={place} />)}
+          {placeEvents.length === 0 && <p className="text-sm text-zinc-600 dark:text-zinc-300">No events yet.</p>}
+          {placeEvents.map(e => <EventCard key={e.id} event={e} place={place} />)}
         </div>
       </section>
     </main>

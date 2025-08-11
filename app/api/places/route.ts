@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server'
-import { places } from '@/lib/data/mock'
+import { getDataSource, createRepositories } from '@/lib/dataSource'
 
 export async function GET() {
-  return NextResponse.json(places)
+  try {
+    const ds = getDataSource()
+    const { places } = createRepositories(ds)
+    const all = await places.all()
+    return NextResponse.json(all)
+  } catch {
+    return NextResponse.json({ error: 'Failed to fetch places' }, { status: 500 })
+  }
 }

@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { getDataSource } from '@/lib/dataSource'
+import { getDataSource, createRepositories } from '@/lib/dataSource'
 import { notFound } from 'next/navigation'
 import { fmtRange } from '@/lib/time'
 
@@ -9,10 +9,11 @@ export const revalidate = 60
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const ds = getDataSource()
-  const event = await ds.getEvent(id)
+  const { events, places, performers } = createRepositories(ds)
+  const event = await events.byId(id)
   if (!event) return notFound()
-  const place = await ds.getPlace(event.placeId)
-  const performers = await Promise.all(event.performerIds.map(pid => ds.getPerformer(pid)))
+  const place = await places.byId(event.placeId)
+  const performerEntities = await Promise.all(event.performerIds.map(pid => performers.byId(pid)))
 
   return (
     <main className="p-4 pb-24 md:pb-0">
@@ -35,7 +36,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       <section className="mt-4">
         <h2 className="mb-2 text-lg font-semibold">Performers</h2>
         <ul className="grid grid-cols-1 gap-3">
-          {performers.filter(Boolean).map(p => (
+          {performerEntities.filter(Boolean).map(p => (
             <li key={p!.id} className="rounded-2xl border border-white/10 bg-white/85 dark:bg-zinc-950/80 backdrop-blur p-4">
               <Link href={`/performers/${p!.id}`} className="text-violet-600 dark:text-violet-300 hover:underline font-medium">{p!.name}</Link>
               <div className="text-sm text-zinc-600 dark:text-zinc-300">{p!.genre}</div>
