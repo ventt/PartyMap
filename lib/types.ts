@@ -43,4 +43,5 @@ export type SearchHit = {
   title: string
   subtitle: string
   href: string
+  image: string // new: thumbnail
 }

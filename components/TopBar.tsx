@@ -6,17 +6,18 @@ import Link from 'next/link'
 
 export default function TopBar() {
   return (
-    <div className="fixed inset-x-0 top-0 z-[1200]">
-      {/* add a tiny top margin so the rounded corners are visible */}
+    // The wrapper doesn’t block map clicks: pointer-events-none
+    <div className="fixed inset-x-0 top-0 z-[1200] pointer-events-none">
       <div className="mt-2 px-4">
-        {/* Desktop (md+): logo + search + nav items + theme */}
+        {/* Desktop bar */}
         <div className="hidden md:flex h-16 items-center justify-between rounded-2xl
-                        bg-gradient-to-r from-violet-700/85 via-fuchsia-700/75 to-indigo-700/75
-                        dark:from-violet-900/75 dark:via-fuchsia-900/65 dark:to-indigo-900/65
-                        backdrop-blur px-3 ring-1 ring-white/10">
+                        bg-gradient-to-r from-violet-700 via-fuchsia-700 to-indigo-700
+                        dark:from-violet-900 dark:via-fuchsia-900 dark:to-indigo-900
+                        px-3 ring-1 ring-white/10 shadow-lg pointer-events-auto">
           <Link href="/" className="text-white font-semibold tracking-tight">PartyMap</Link>
 
           <div className="flex-1 mx-4 max-w-3xl">
+            {/* Keep dropdown above the map */}
             <div className="relative z-[1300]">
               <SearchBar />
             </div>
@@ -28,11 +29,11 @@ export default function TopBar() {
           </div>
         </div>
 
-        {/* Mobile (<md): purple bar too, with ONLY the search */}
+        {/* Mobile bar: ONLY search up top */}
         <div className="md:hidden h-16 rounded-2xl
-                        bg-gradient-to-r from-violet-700/85 via-fuchsia-700/75 to-indigo-700/75
-                        dark:from-violet-900/75 dark:via-fuchsia-900/65 dark:to-indigo-900/65
-                        backdrop-blur ring-1 ring-white/10 px-3 flex items-center">
+                        bg-gradient-to-r from-violet-700 via-fuchsia-700 to-indigo-700
+                        dark:from-violet-900 dark:via-fuchsia-900 dark:to-indigo-900
+                        ring-1 ring-white/10 px-3 flex items-center shadow-lg pointer-events-auto">
           <div className="w-full relative z-[1300]">
             <SearchBar />
           </div>

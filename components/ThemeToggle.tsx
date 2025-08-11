@@ -10,7 +10,7 @@ export default function ThemeToggle({ small = false }: { small?: boolean }) {
       onClick={toggle}
       aria-pressed={theme === 'dark'}
       className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/60 p-2 backdrop-blur
-                 shadow-sm hover:bg-white/70 dark:bg-zinc-800/60 dark:hover:bg-zinc-800/70 transition"
+                 shadow-sm hover:bg-white/70 dark:bg-zinc-800/60 dark:hover:bg-zinc-800/70 transition cursor-pointer"
       title="Toggle theme"
     >
       {theme === 'dark' ? <Sun className={size} /> : <Moon className={size} />}

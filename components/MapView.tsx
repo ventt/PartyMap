@@ -1,9 +1,9 @@
 'use client'
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
 import type { Place } from '@/lib/types'
+import PlacePopupCard from './PlacePopupCard'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
@@ -22,26 +22,39 @@ export default function MapView({ places, isDark = false }: Props) {
   const tileUrl = isDark
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
     : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-  const attribution = isDark
-    ? '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> · &copy; <a href="https://carto.com/">CARTO</a>'
-    : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  const attribution = isDark ? '&copy; OSM · © CARTO' : '&copy; OpenStreetMap'
 
   return (
-    <div className="h-full w-full">
-      <MapContainer center={[center.lat, center.lng]} zoom={13} scrollWheelZoom className="h-full w-full">
+    <div className="h-full w-full relative z-0">
+      <MapContainer
+        center={[center.lat, center.lng]}
+        zoom={13}
+        scrollWheelZoom
+        zoomControl={false}
+        className="h-full w-full"
+        style={{ zIndex: 0 }}
+      >
         <TileLayer attribution={attribution} url={tileUrl} />
+
         {places.map((p) => (
-          <Marker key={p.id} position={[p.location.lat, p.location.lng]} eventHandlers={{ click: () => setActive(p) }} />
+          <Marker
+            key={p.id}
+            position={[p.location.lat, p.location.lng]}
+            eventHandlers={{ click: () => setActive(p) }}
+          />
         ))}
+
         {active && (
-          <Popup position={[active.location.lat, active.location.lng]} eventHandlers={{ remove: () => setActive(null) }}>
-            <div className="min-w-48">
-              <div className="text-sm font-semibold">{active.name}</div>
-              <div className="text-xs text-zinc-600 dark:text-zinc-300">{active.address}</div>
-              <Link href={`/places/${active.id}`} className="mt-2 inline-block text-sm font-medium text-violet-600 dark:text-violet-300 hover:underline">
-                View place →
-              </Link>
-            </div>
+          <Popup
+            position={[active.location.lat, active.location.lng]}
+            className="place-popup"
+            autoPan
+            autoPanPadding={[16, 120]}
+            closeOnClick={false}
+            offset={[0, -6]}
+            eventHandlers={{ remove: () => setActive(null) }}
+          >
+            <PlacePopupCard place={active} onClose={() => setActive(null)} />
           </Popup>
         )}
       </MapContainer>

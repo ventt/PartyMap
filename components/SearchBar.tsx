@@ -1,74 +1,185 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Search } from 'lucide-react'
 import type { SearchHit } from '@/lib/types'
 
 export default function SearchBar() {
+  // Core state
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SearchHit[]>([])
   const [open, setOpen] = useState(false)
+  const [containerAnim, setContainerAnim] = useState<'enter' | 'idle' | 'leave'>('idle')
   const rootRef = useRef<HTMLDivElement>(null)
+  const firstOpenRef = useRef(false)
 
-  // Close on outside click (works over Leaflet too by using pointerdown + capture)
+  // Animated list state
+  type AnimatedItem = { hit: SearchHit; phase: 'enter' | 'idle' | 'leave' }
+  const [items, setItems] = useState<AnimatedItem[]>([])
+
+  // Outside click
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
       if (!rootRef.current) return
-      if (!rootRef.current.contains(e.target as Node)) setOpen(false)
+      if (!rootRef.current.contains(e.target as Node)) closeDropdown()
     }
     document.addEventListener('pointerdown', handlePointerDown, { capture: true })
     return () => document.removeEventListener('pointerdown', handlePointerDown, { capture: true } as any)
   }, [])
 
-  // Close on Escape
+  // Escape
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeDropdown() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
-  // Fetch results (debounced)
+  function closeDropdown() {
+    // animate container + items leaving
+    setContainerAnim('leave')
+    // mark all items leaving (if not already)
+    setItems(prev => prev.map(it => it.phase === 'leave' ? it : { ...it, phase: 'leave' }))
+    setTimeout(() => { setOpen(false); setItems([]); setContainerAnim('idle'); firstOpenRef.current = false }, 260)
+  }
+
+  // Fetch results (debounced) -> diff items, animate enter/leave per item
   useEffect(() => {
     const t = setTimeout(async () => {
-      if (!query.trim()) { setResults([]); setOpen(false); return }
-      const r = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+      const q = query.trim()
+      if (!q) { closeDropdown(); return }
+      const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`)
       const json = await r.json() as { hits: SearchHit[] }
-      setResults(json.hits)
-      setOpen(true)
+      const newHits = json.hits
+
+      setItems(prev => {
+        const prevMap = new Map(prev.filter(p => p.phase !== 'leave').map(p => [keyOf(p.hit), p]))
+        const nextKeys = new Set(newHits.map(h => keyOf(h)))
+        // items staying or entering
+        const staying: AnimatedItem[] = newHits.map(h => {
+          const k = keyOf(h)
+            const existing = prevMap.get(k)
+            if (existing) {
+              return { hit: h, phase: existing.phase === 'leave' ? 'idle' : 'idle' }
+            }
+            return { hit: h, phase: 'enter' }
+        })
+        // items leaving
+        const leaving: AnimatedItem[] = prev
+          .filter(p => !nextKeys.has(keyOf(p.hit)) && p.phase !== 'leave')
+          .map(p => ({ ...p, phase: 'leave' }))
+        return [...staying, ...leaving]
+      })
+
+      if (!open) {
+        setOpen(true)
+        setContainerAnim('enter')
+        firstOpenRef.current = true
+      } else if (containerAnim === 'enter') {
+        // after first animation settles
+        setContainerAnim('idle')
+      }
     }, 200)
     return () => clearTimeout(t)
   }, [query])
 
-  return (
-  <div ref={rootRef} className="relative">
-    <div
-      className="flex items-center gap-2 rounded-full border border-white/20
-                 bg-white/85 px-3 py-2 shadow-sm backdrop-blur
-                 focus-within:ring-2 focus-within:ring-violet-400
-                 dark:bg-white/85 dark:border-white/20"
-    >
-      <Search className="h-5 w-5 text-zinc-700" aria-hidden />
-      <input
-        className="w-full bg-transparent text-sm text-zinc-900 placeholder-zinc-600 outline-none"
-        placeholder="Search places, events, performers"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => { if (results.length) setOpen(true) }}
-      />
-    </div>
+  // Cleanup leaving items after their animation
+  useEffect(() => {
+    if (!items.some(i => i.phase === 'leave')) return
+    const to = setTimeout(() => {
+      setItems(prev => prev.filter(i => i.phase !== 'leave'))
+    }, 250)
+    return () => clearTimeout(to)
+  }, [items])
 
-    {open && results.length > 0 && (
-      <div
-        className="absolute left-0 right-0 top-full z-[1400] mt-2 max-h-96 overflow-auto
-                   rounded-xl border border-white/10 bg-white/95 shadow-xl backdrop-blur
-                   dark:bg-zinc-950/95"
-        role="listbox"
-      >
-        {/* …list unchanged… */}
+  const showPanel = open
+  const puffSeeds = Array.from({ length: 6 }, (_, i) => i)
+
+  return (
+    <div ref={rootRef} className="relative">
+      {/* Input */}
+      <div className="flex items-center gap-2 rounded-full border border-white/20 bg-white/90 px-3 py-2 shadow-sm backdrop-blur-md transition focus-within:ring-2 focus-within:ring-violet-400/60">
+        <Search className="h-5 w-5 text-zinc-700" aria-hidden />
+        <input
+          className="w-full bg-transparent text-sm text-zinc-900 placeholder-zinc-600 outline-none"
+          placeholder="Search places, events, performers"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => { if (items.length) { setOpen(true); if (!firstOpenRef.current) { setContainerAnim('enter'); firstOpenRef.current = true } }} }
+        />
       </div>
-    )}
-  </div>
-)
+
+      {/* Dropdown */}
+      {showPanel && (
+        <div
+          className={`absolute left-0 top-full mt-2 w-full max-h-96 overflow-hidden rounded-xl border border-violet-300/50 dark:border-violet-400/20 bg-white/85 dark:bg-zinc-950/90 shadow-2xl backdrop-blur-lg z-50 ${containerAnim === 'enter' ? 'smoke-enter' : ''} ${containerAnim === 'leave' ? 'smoke-leave' : ''}`}
+          role="listbox"
+          onAnimationEnd={(e) => { if (containerAnim === 'enter') setContainerAnim('idle') }}
+        >
+          {/* Smoke puffs only on container enter */}
+          {containerAnim === 'enter' && (
+            <div aria-hidden className="pointer-events-none absolute inset-0">
+              {puffSeeds.map(i => {
+                const delay = i * 35
+                const left = 10 + (i * 70) % 100
+                const size = 140 + (i % 3) * 60
+                return (
+                  <span
+                    key={i}
+                    style={{ animationDelay: `${delay}ms`, left: `${left}%`, width: `${size}px`, height: `${size}px` }}
+                    className="absolute top-full -translate-x-1/2 rounded-full bg-gradient-to-tr from-white/40 to-white/5 dark:from-white/10 dark:to-white/0 blur-xl opacity-0 puff"
+                  />
+                )
+              })}
+            </div>
+          )}
+
+          <div className="relative">
+            {items.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-300">No results for “{query}”</div>
+            ) : (
+              <ul className="divide-y divide-zinc-200/60 dark:divide-white/10">
+                {items.map(({ hit, phase }) => (
+                  <li key={keyOf(hit)} className={`item ${phase === 'enter' ? 'item-enter' : ''} ${phase === 'leave' ? 'item-leave' : ''}`}>
+                    <Link
+                      href={hit.href}
+                      onClick={() => closeDropdown()}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-violet-50/70 dark:hover:bg-violet-900/30 transition-colors"
+                    >
+                      <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-white/20">
+                        <Image src={hit.image} alt={hit.title} fill sizes="40px" className="object-cover" />
+                        <span className="absolute bottom-0 left-0 right-0 text-[10px] font-medium uppercase tracking-wide bg-black/40 text-white text-center leading-tight">{hit.type.charAt(0)}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">{hit.title}</div>
+                        <div className="truncate text-xs text-zinc-600 dark:text-zinc-300">{hit.subtitle}</div>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes smokeInContainer { 0% { opacity:0; transform: translateY(4px) scale(.96); filter: blur(8px); } 60% { opacity:1; filter: blur(2px);} 100% { opacity:1; transform: translateY(0) scale(1); filter: blur(0);} }
+        @keyframes smokeOutContainer { 0% { opacity:1; transform: translateY(0) scale(1); filter: blur(0);} 40% { filter: blur(4px);} 100% { opacity:0; transform: translateY(-6px) scale(.98); filter: blur(12px);} }
+        .smoke-enter { animation: smokeInContainer 0.28s cubic-bezier(.4,.0,.2,1); }
+        .smoke-leave { animation: smokeOutContainer 0.28s cubic-bezier(.4,.0,.2,1) forwards; }
+
+        @keyframes puffRise { 0% { transform: translate(-50%, 10px) scale(.4); opacity:0; } 35% { opacity:.35; } 70% { opacity:.12; } 100% { transform: translate(-50%, -120px) scale(1.4); opacity:0; } }
+        .puff { animation: puffRise 1.2s linear forwards; mix-blend-mode: plus-lighter; }
+
+        /* Item animations */
+        @keyframes itemIn { 0% { opacity:0; transform: translateY(4px); } 100% { opacity:1; transform: translateY(0);} }
+        @keyframes itemOut { 0% { opacity:1; height: var(--h); margin-top:0; margin-bottom:0; } 80% { opacity:0; } 100% { opacity:0; height:0; margin-top:0; margin-bottom:0; } }
+        .item-enter { animation: itemIn 0.22s ease-out; }
+        .item-leave { animation: itemOut 0.22s ease-in forwards; overflow:hidden; }
+        .item-leave > a { pointer-events:none; }
+      `}</style>
+    </div>
+  )
 }
+
+function keyOf(hit: SearchHit) { return `${hit.type}-${hit.id}` }
