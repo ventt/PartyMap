@@ -17,7 +17,7 @@ export default async function PlacePage({ params }: { params: Promise<{ id: stri
   return (
     <main className="pt-24 px-4 pb-24 md:pb-0">
       <Link href="/" className="text-violet-600 dark:text-violet-300 text-sm">← Back</Link>
-      <div className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-white/85 dark:bg-zinc-950/80 backdrop-blur">
+      <div className="mt-2 overflow-hidden rounded-2xl border border-gray-300/80 dark:border-white/10 bg-white/90 dark:bg-zinc-950/80 backdrop-blur shadow-sm">
         <Image src={place.image} alt={place.name} width={1600} height={900} className="h-56 w-full object-cover"/>
         <div className="p-4">
           <h1 className="text-2xl font-bold">{place.name}</h1>

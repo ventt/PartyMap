@@ -228,7 +228,7 @@ export default function SearchBar() {
             {items.length === 0 ? (
               <div className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-300">No results for “{query}”</div>
             ) : (
-              <ul className="divide-y divide-zinc-200/60 dark:divide-white/10">
+              <ul className="divide-y divide-zinc-300/70 dark:divide-white/10">
                 {items.map(({ hit, phase }) => {
                   const meta = typeMeta[hit.type]
                   // Format next date relative local

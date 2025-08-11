@@ -5,7 +5,7 @@ import { fmtRange } from '@/lib/time'
 
 export default function EventCard({ event, place }: { event: Event, place?: Place }) {
   return (
-    <div className="rounded-2xl border border-gray-200 overflow-hidden">
+    <div className="rounded-2xl border border-gray-300/80 dark:border-white/10 bg-white/90 dark:bg-zinc-950/70 backdrop-blur-sm shadow-sm">
       <Image src={event.image} alt={event.title} width={1200} height={600} className="h-40 w-full object-cover"/>
       <div className="p-4">
         <h3 className="text-lg font-semibold">{event.title}</h3>
