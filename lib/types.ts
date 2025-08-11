@@ -44,4 +44,5 @@ export type SearchHit = {
   subtitle: string
   href: string
   image: string // new: thumbnail
+  placeId?: ID // for event hits (and could mirror place for convenience)
 }

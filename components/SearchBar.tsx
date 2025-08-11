@@ -5,6 +5,13 @@ import Image from 'next/image'
 import { Search } from 'lucide-react'
 import type { SearchHit } from '@/lib/types'
 
+// helper to broadcast highlight IDs
+function emitHighlight(placeIds: string[]) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('pm:highlight-places', { detail: { placeIds } }))
+  }
+}
+
 export default function SearchBar() {
   // Core state
   const [query, setQuery] = useState('')
@@ -46,10 +53,14 @@ export default function SearchBar() {
   useEffect(() => {
     const t = setTimeout(async () => {
       const q = query.trim()
-      if (!q) { closeDropdown(); return }
+      if (!q) { closeDropdown(); emitHighlight([]); return }
       const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`)
       const json = await r.json() as { hits: SearchHit[] }
       const newHits = json.hits
+
+      // collect placeIds from hits (place hits & events referencing place)
+      const placeIds = Array.from(new Set(newHits.map(h => h.placeId).filter(Boolean))) as string[]
+      emitHighlight(placeIds)
 
       setItems(prev => {
         const prevMap = new Map(prev.filter(p => p.phase !== 'leave').map(p => [keyOf(p.hit), p]))

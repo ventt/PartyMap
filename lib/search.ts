@@ -8,7 +8,6 @@ export function searchAll(query: string): SearchHit[] {
   const q = query.trim()
   if (!q) return []
 
-  // ---- Places: name + city + address + tags
   const placeHits: SearchHit[] = places
     .filter(p =>
       includes(p.name, q) ||
@@ -23,9 +22,9 @@ export function searchAll(query: string): SearchHit[] {
       subtitle: `${p.city} • ${p.tags.join(', ')}`,
       href: `/places/${p.id}`,
       image: p.image,
+      placeId: p.id,
     }))
 
-  // ---- Events: title/desc + place name + place city
   const eventHits: SearchHit[] = events
     .filter(e => {
       const place = places.find(p => p.id === e.placeId)
@@ -41,10 +40,10 @@ export function searchAll(query: string): SearchHit[] {
         subtitle: place ? `${place.name} • ${place.city}` : 'Event',
         href: `/events/${e.id}`,
         image: e.image,
+        placeId: e.placeId,
       }
     })
 
-  // ---- Performers: name + genre
   const performerHits: SearchHit[] = performers
     .filter(a => includes(a.name, q) || includes(a.genre, q))
     .map(a => ({
@@ -56,7 +55,6 @@ export function searchAll(query: string): SearchHit[] {
       image: a.image,
     }))
 
-  // Simple sort: titles that START with the query first, then others
   const starts = (s: string) => norm(s).startsWith(norm(q)) ? 0 : 1
 
   return [...placeHits, ...eventHits, ...performerHits]
