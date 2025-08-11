@@ -202,7 +202,7 @@ export default function SearchBar() {
       {/* Dropdown */}
       {showPanel && (
         <div
-          className={`absolute left-0 top-full mt-2 w-full max-h-96 overflow-hidden rounded-xl border border-violet-300/50 dark:border-violet-400/20 bg-white/85 dark:bg-zinc-950/90 shadow-2xl backdrop-blur-lg z-50 ${containerAnim === 'enter' ? 'smoke-enter' : ''} ${containerAnim === 'leave' ? 'smoke-leave' : ''}`}
+          className={`absolute left-0 top-full mt-2 w-full max-h-96 overflow-hidden rounded-xl border border-violet-300/50 dark:border-violet-400/20 bg-white/85 dark:bg-zinc-950/90 shadow-2xl backdrop-blur-lg z-[2000] ${containerAnim === 'enter' ? 'smoke-enter' : ''} ${containerAnim === 'leave' ? 'smoke-leave' : ''}`}
           role="listbox"
           onAnimationEnd={(e) => { if (containerAnim === 'enter') setContainerAnim('idle') }}
         >

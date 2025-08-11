@@ -1,5 +1,6 @@
 import MapClient from '@/components/MapClient'
 import { getDataSource } from '@/lib/dataSource'
+import { Suspense } from 'react'
 
 export const revalidate = 60
 
@@ -10,7 +11,9 @@ export default async function HomePage() {
   return (
     // The map occupies the full viewport. Bars are fixed overlays.
     <main className="fixed inset-0">
-      <MapClient places={places} />
+      <Suspense fallback={null}>
+        <MapClient places={places} />
+      </Suspense>
     </main>
   )
 }
