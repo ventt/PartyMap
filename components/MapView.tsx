@@ -15,7 +15,7 @@ const makeMarker = (color: string) => new L.Icon({
 const defaultMarker: Icon = makeMarker('#3b82f6')
 const highlightMarker: Icon = makeMarker('#7256d9')
 
-interface Props { places: Place[]; isDark?: boolean; highlightIds?: string[] }
+interface Props { places: Place[]; isDark?: boolean; highlightIds?: string[]; activePlaceId?: string | null }
 
 function FitToHighlights({ places, highlightIds }: { places: Place[]; highlightIds?: string[] }) {
   const map = useMap()
@@ -34,13 +34,19 @@ function FitToHighlights({ places, highlightIds }: { places: Place[]; highlightI
   return null
 }
 
-export default function MapView({ places, isDark = false, highlightIds }: Props) {
+export default function MapView({ places, isDark = false, highlightIds, activePlaceId }: Props) {
   const [active, setActive] = useState<Place | null>(null)
   const center: LatLngTuple = [47.4979, 19.0402]
   const tileUrl = isDark
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
     : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
   const attribution = isDark ? '&copy; OSM · © CARTO' : '&copy; OpenStreetMap'
+
+  useEffect(() => {
+    if (!activePlaceId) { setActive(null); return }
+    const p = places.find(pl => pl.id === activePlaceId)
+    if (p) setActive(p)
+  }, [activePlaceId, places])
 
   return (
     <div className="h-full w-full relative z-0">

@@ -2,13 +2,23 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, MapPin, CalendarDays, User2, Tag } from 'lucide-react'
+import { Search, MapPin, CalendarDays, User2, Tag, LocateFixed } from 'lucide-react'
 import type { SearchHit } from '@/lib/types'
 
 // helper to broadcast highlight IDs
 function emitHighlight(placeIds: string[]) {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('pm:highlight-places', { detail: { placeIds } }))
+  }
+}
+function emitOpenPlacePopup(placeId: string) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('pm:open-place-popup', { detail: { placeId } }))
+  }
+}
+function emitClosePopups() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('pm:close-popups'))
   }
 }
 
@@ -23,9 +33,8 @@ export default function SearchBar() {
   // Animated list state
   type AnimatedItem = { hit: SearchHit; phase: 'enter' | 'idle' | 'leave' }
   const [items, setItems] = useState<AnimatedItem[]>([])
-  // Store base placeIds (all places represented in current results) to restore after hover
+  // Store base placeIds (all places represented in current results)
   const basePlaceIdsRef = useRef<string[]>([])
-  const lastHoverPlaceIdRef = useRef<string | null>(null)
 
   // Icon + color mapping (dark near-black tints)
   const typeMeta: Record<SearchHit['type'], { icon: React.ReactNode; bg: string; ring: string; fg: string; label: string }> = {
@@ -158,14 +167,16 @@ export default function SearchBar() {
   return (
     <div ref={rootRef} className="relative">
       {/* Input */}
-      <div className="flex items-center gap-2 rounded-full border border-white/20 bg-white/90 px-3 py-2 shadow-sm backdrop-blur-md transition focus-within:ring-2 focus-within:ring-violet-400/60">
-        <Search className="h-5 w-5 text-zinc-700" aria-hidden />
+      <div className="flex items-center gap-2 rounded-full border border-white/20 dark:border-zinc-600/50 bg-white/90 dark:bg-zinc-900/70 px-3 py-2 shadow-sm dark:shadow-md backdrop-blur-md transition focus-within:ring-2 focus-within:ring-violet-400/60 dark:focus-within:ring-violet-500/50">
+        <Search className="h-5 w-5 text-zinc-700 dark:text-zinc-300" aria-hidden />
         <input
-          className="w-full bg-transparent text-sm text-zinc-900 placeholder-zinc-600 outline-none"
+          className="w-full bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-600 dark:placeholder-zinc-400 outline-none"
           placeholder="Search places, events, performers, tags"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
+            emitClosePopups()
+            emitHighlight(basePlaceIdsRef.current.length ? basePlaceIdsRef.current : [])
             if (query.trim()) {
               if (!open) {
                 // If we have no items (or only leaving ones) refetch so user sees results again
@@ -228,49 +239,55 @@ export default function SearchBar() {
                       dateLabel = d.toLocaleDateString([], { month: 'short', day: 'numeric', ...(inYear ? {} : { year: 'numeric' }) })
                     }
                   }
+                  const placeIdForFocus = hit.placeId || (hit.type === 'place' ? hit.id : undefined)
                   return (
                     <li
                       key={keyOf(hit)}
                       className={`item ${phase === 'enter' ? 'item-enter' : ''} ${phase === 'leave' ? 'item-leave' : ''}`}
-                      onMouseEnter={() => {
-                        // Focus map on single place/event place
-                        const placeId = hit.placeId || (hit.type === 'place' ? hit.id : undefined)
-                        if (placeId && lastHoverPlaceIdRef.current !== placeId) {
-                          lastHoverPlaceIdRef.current = placeId
-                          emitHighlight([placeId])
-                        }
-                      }}
-                      onMouseLeave={() => {
-                        // Restore baseline highlight set
-                        lastHoverPlaceIdRef.current = null
-                        emitHighlight(basePlaceIdsRef.current)
-                      }}
                     >
-                      <Link
-                        href={hit.href}
-                        onClick={() => closeDropdown()}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-violet-50/70 dark:hover:bg-violet-900/30 transition-colors"
-                      >
-                        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-white/20">
-                          <Image src={hit.image} alt={hit.title} fill sizes="40px" className="object-cover" />
-                          <span className="absolute bottom-0 left-0 right-0 text-[10px] font-medium uppercase tracking-wide bg-black/40 text-white text-center leading-tight">{hit.type.charAt(0)}</span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">{hit.title}</span>
-                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide ring-1 ${meta.bg} ${meta.ring} ${meta.fg}`}>
-                              {meta.icon}
-                              {meta.label}
-                            </span>
+                      <div className="flex items-center gap-3 px-4 py-3 hover:bg-violet-50/70 dark:hover:bg-violet-900/30 transition-colors">
+                        <Link
+                          href={hit.href}
+                          onClick={() => closeDropdown()}
+                          className="flex flex-1 items-center gap-3 min-w-0"
+                        >
+                          <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-white/20">
+                            <Image src={hit.image} alt={hit.title} fill sizes="40px" className="object-cover" />
+                            <span className="absolute bottom-0 left-0 right-0 text-[10px] font-medium uppercase tracking-wide bg-black/40 text-white text-center leading-tight">{hit.type.charAt(0)}</span>
                           </div>
-                          <div className="truncate text-xs text-zinc-600 dark:text-zinc-300">{hit.subtitle}</div>
-                        </div>
-                        {dateLabel && (
-                          <div className="ml-3 flex flex-col items-end text-right">
-                            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200 tabular-nums">{dateLabel}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">{hit.title}</span>
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide ring-1 ${meta.bg} ${meta.ring} ${meta.fg}`}>
+                                {meta.icon}
+                                {meta.label}
+                              </span>
+                            </div>
+                            <div className="truncate text-xs text-zinc-600 dark:text-zinc-300">{hit.subtitle}</div>
                           </div>
+                          {dateLabel && (
+                            <div className="ml-3 hidden sm:flex flex-col items-end text-right">
+                              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200 tabular-nums">{dateLabel}</span>
+                            </div>
+                          )}
+                        </Link>
+                        {placeIdForFocus && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              emitHighlight([placeIdForFocus])
+                              emitOpenPlacePopup(placeIdForFocus)
+                              closeDropdown()
+                            }}
+                            title="Focus on map"
+                            className="flex-shrink-0 inline-flex items-center justify-center rounded-full h-7 w-7 text-violet-600 dark:text-violet-300 hover:bg-violet-100/70 dark:hover:bg-violet-800/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
+                          >
+                            <LocateFixed className="h-4 w-4" />
+                          </button>
                         )}
-                      </Link>
+                      </div>
                     </li>
                   )
                 })}
