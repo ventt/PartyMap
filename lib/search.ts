@@ -64,9 +64,23 @@ export function buildSearchHits(query: string, data: SearchDataBuckets): SearchH
       image: a.image,
     }))
 
+  // Tag hits (unique tags across places) if tag matches beginning
+  const uniqueTags = Array.from(new Set(places.flatMap(p => p.tags)))
+  const tagHits: SearchHit[] = uniqueTags
+    .filter(tag => includes(tag, q))
+    .slice(0, 10)
+    .map(tag => ({
+      type: 'tag' as const,
+      id: tag,
+      title: `#${tag}`,
+      subtitle: 'Tag',
+      href: `/search?tag=${encodeURIComponent(tag)}`,
+      image: '/placeholder.svg',
+    }))
+
   const starts = (s: string) => norm(s).startsWith(norm(q)) ? 0 : 1
 
-  return [...placeHits, ...eventHits, ...performerHits]
+  return [...tagHits, ...placeHits, ...eventHits, ...performerHits]
     .sort((a, b) => starts(a.title) - starts(b.title))
     .slice(0, 20)
 }

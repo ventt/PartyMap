@@ -38,7 +38,7 @@ export type Event = {
 }
 
 export type SearchHit = {
-  type: 'place' | 'event' | 'performer'
+  type: 'place' | 'event' | 'performer' | 'tag' // added 'tag'
   id: ID
   title: string
   subtitle: string

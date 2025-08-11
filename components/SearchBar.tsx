@@ -1,8 +1,8 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search } from 'lucide-react'
+import { Search, MapPin, CalendarDays, User2, Tag } from 'lucide-react'
 import type { SearchHit } from '@/lib/types'
 
 // helper to broadcast highlight IDs
@@ -23,6 +23,38 @@ export default function SearchBar() {
   // Animated list state
   type AnimatedItem = { hit: SearchHit; phase: 'enter' | 'idle' | 'leave' }
   const [items, setItems] = useState<AnimatedItem[]>([])
+
+  // Icon + color mapping (dark near-black tints)
+  const typeMeta: Record<SearchHit['type'], { icon: React.ReactNode; bg: string; ring: string; fg: string; label: string }> = {
+    place: {
+      icon: <MapPin className="h-3.5 w-3.5" />,
+      bg: 'bg-emerald-950/70 dark:bg-emerald-900/40',
+      ring: 'ring-emerald-500/25',
+      fg: 'text-emerald-200',
+      label: 'Place'
+    },
+    event: {
+      icon: <CalendarDays className="h-3.5 w-3.5" />,
+      bg: 'bg-violet-950/70 dark:bg-violet-900/40',
+      ring: 'ring-violet-500/25',
+      fg: 'text-violet-200',
+      label: 'Event'
+    },
+    performer: {
+      icon: <User2 className="h-3.5 w-3.5" />,
+      bg: 'bg-rose-950/70 dark:bg-rose-900/40',
+      ring: 'ring-rose-500/25',
+      fg: 'text-rose-200',
+      label: 'Performer'
+    },
+    tag: {
+      icon: <Tag className="h-3.5 w-3.5" />,
+      bg: 'bg-zinc-900/70 dark:bg-zinc-800/50',
+      ring: 'ring-zinc-400/25',
+      fg: 'text-zinc-200',
+      label: 'Tag'
+    }
+  }
 
   // New: refetch current query when reopening
   async function refetchCurrentIfNeeded() {
@@ -86,10 +118,7 @@ export default function SearchBar() {
         const staying: AnimatedItem[] = newHits.map(h => {
           const k = keyOf(h)
           const existing = prevMap.get(k)
-          if (existing) {
-            return { hit: h, phase: existing.phase === 'leave' ? 'idle' : 'idle' }
-          }
-          return { hit: h, phase: 'enter' }
+            return existing ? { hit: h, phase: existing.phase === 'leave' ? 'idle' : 'idle' } : { hit: h, phase: 'enter' }
         })
         const leaving: AnimatedItem[] = prev
           .filter(p => !nextKeys.has(keyOf(p.hit)) && p.phase !== 'leave')
@@ -128,7 +157,7 @@ export default function SearchBar() {
         <Search className="h-5 w-5 text-zinc-700" aria-hidden />
         <input
           className="w-full bg-transparent text-sm text-zinc-900 placeholder-zinc-600 outline-none"
-          placeholder="Search places, events, performers"
+          placeholder="Search places, events, performers, tags"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
@@ -180,24 +209,33 @@ export default function SearchBar() {
               <div className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-300">No results for “{query}”</div>
             ) : (
               <ul className="divide-y divide-zinc-200/60 dark:divide-white/10">
-                {items.map(({ hit, phase }) => (
-                  <li key={keyOf(hit)} className={`item ${phase === 'enter' ? 'item-enter' : ''} ${phase === 'leave' ? 'item-leave' : ''}`}>
-                    <Link
-                      href={hit.href}
-                      onClick={() => closeDropdown()}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-violet-50/70 dark:hover:bg-violet-900/30 transition-colors"
-                    >
-                      <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-white/20">
-                        <Image src={hit.image} alt={hit.title} fill sizes="40px" className="object-cover" />
-                        <span className="absolute bottom-0 left-0 right-0 text-[10px] font-medium uppercase tracking-wide bg-black/40 text-white text-center leading-tight">{hit.type.charAt(0)}</span>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">{hit.title}</div>
-                        <div className="truncate text-xs text-zinc-600 dark:text-zinc-300">{hit.subtitle}</div>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
+                {items.map(({ hit, phase }) => {
+                  const meta = typeMeta[hit.type]
+                  return (
+                    <li key={keyOf(hit)} className={`item ${phase === 'enter' ? 'item-enter' : ''} ${phase === 'leave' ? 'item-leave' : ''}`}>
+                      <Link
+                        href={hit.href}
+                        onClick={() => closeDropdown()}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-violet-50/70 dark:hover:bg-violet-900/30 transition-colors"
+                      >
+                        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-white/20">
+                          <Image src={hit.image} alt={hit.title} fill sizes="40px" className="object-cover" />
+                          <span className="absolute bottom-0 left-0 right-0 text-[10px] font-medium uppercase tracking-wide bg-black/40 text-white text-center leading-tight">{hit.type.charAt(0)}</span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">{hit.title}</span>
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide ring-1 ${meta.bg} ${meta.ring} ${meta.fg}`}>
+                              {meta.icon}
+                              {meta.label}
+                            </span>
+                          </div>
+                          <div className="truncate text-xs text-zinc-600 dark:text-zinc-300">{hit.subtitle}</div>
+                        </div>
+                      </Link>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </div>
