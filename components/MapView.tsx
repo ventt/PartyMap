@@ -74,6 +74,7 @@ export default function MapView({ places, isDark = false, highlightIds }: Props)
             autoPanPadding={[16, 120] as any}
             closeOnClick={false}
             offset={[0, -6]}
+            className="place-popup"
             eventHandlers={{ remove: () => setActive(null) }}
           >
             <PlacePopupCard place={active} onClose={() => setActive(null)} />

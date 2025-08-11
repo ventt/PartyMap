@@ -37,6 +37,7 @@ declare module 'react-leaflet' {
     offset?: [number, number]
     eventHandlers?: Record<string, (...args: any[]) => void>
     children?: React.ReactNode
+    className?: string
   }
   export const Popup: React.ComponentType<PopupProps>
 
