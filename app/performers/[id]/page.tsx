@@ -14,7 +14,7 @@ export default async function PerformerPage({ params }: { params: Promise<{ id: 
   const performerEvents = await events.byPerformerId(performer.id)
 
   return (
-    <main className="p-4 pb-24 md:pb-0">
+    <main className="pt-24 px-4 pb-24 md:pb-0">
       <Link href="/" className="text-violet-600 dark:text-violet-300 text-sm">← Back</Link>
       <div className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-white/85 dark:bg-zinc-950/80 backdrop-blur">
         <Image src={performer.image} alt={performer.name} width={1600} height={900} className="h-56 w-full object-cover"/>
