@@ -126,30 +126,31 @@ function DesktopZoomControls() {
 }
 
 export default function MapView({ places, isDark = false, highlightIds, activePlaceId, activePlaceIds }: Props) {
-  const [openPopups, setOpenPopups] = useState<string[]>([])
+  // Single-popup state
+  const [openPopupId, setOpenPopupId] = useState<string | null>(null)
   const center: LatLngTuple = [47.4979, 19.0402]
   const tileUrl = isDark
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
     : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
   const attribution = isDark ? '&copy; OSM · © CARTO' : '&copy; OpenStreetMap'
 
-  // Sync incoming controls from parent
+  // Sync incoming controls from parent (prefer single id)
   useEffect(() => {
-    if (activePlaceIds && activePlaceIds.length) {
-      setOpenPopups(Array.from(new Set(activePlaceIds)))
+    if (activePlaceId) {
+      setOpenPopupId(activePlaceId)
       return
     }
-    if (activePlaceId) {
-      setOpenPopups([activePlaceId])
+    if (activePlaceIds && activePlaceIds.length) {
+      setOpenPopupId(activePlaceIds[0])
       return
     }
     // If both are cleared
-    if (!activePlaceIds && !activePlaceId) setOpenPopups([])
+    if (!activePlaceIds && !activePlaceId) setOpenPopupId(null)
   }, [activePlaceId, activePlaceIds])
 
   // Close all popups on global pm:close-popups (e.g., Clear button)
   useEffect(() => {
-    const onCloseAll = () => setOpenPopups([])
+    const onCloseAll = () => setOpenPopupId(null)
     window.addEventListener('pm:close-popups', onCloseAll as any)
     return () => window.removeEventListener('pm:close-popups', onCloseAll as any)
   }, [])
@@ -162,7 +163,6 @@ export default function MapView({ places, isDark = false, highlightIds, activePl
         zoom={13}
         scrollWheelZoom
         zoomControl={false}
-        closePopupOnClick={false}
         className="h-full w-full"
         style={{ zIndex: 0 }}
       >
@@ -174,7 +174,7 @@ export default function MapView({ places, isDark = false, highlightIds, activePl
         <DesktopZoomControls />
         {places.map((p) => {
           const isHighlighted = !!highlightIds?.includes(p.id)
-          const isActive = openPopups.includes(p.id)
+          const isActive = openPopupId === p.id
           const shiny = isHighlighted || isActive
           const baseColor = isActive ? '#ec4899' : (isHighlighted ? '#8b5cf6' : (isDark ? '#475569' : '#334155'))
           const icon = fancyPinIcon(baseColor, shiny)
@@ -184,25 +184,31 @@ export default function MapView({ places, isDark = false, highlightIds, activePl
               key={p.id}
               position={pos}
               icon={icon as any}
-              eventHandlers={{ click: () => setOpenPopups(prev => prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id]) }}
+              eventHandlers={{
+                click: () => setOpenPopupId(prev => prev === p.id ? null : p.id)
+              }}
             />
           )
         })}
-        {places.filter(p => openPopups.includes(p.id)).map(p => (
-          <Popup
-            key={`popup-${p.id}`}
-            position={[p.location.lat, p.location.lng] as LatLngTuple}
-            autoPan={openPopups.length <= 1}
-            autoPanPadding={[16, 120] as any}
-            closeOnClick={false}
-            autoClose={false}
-            offset={[0, -26]}
-            className="place-popup"
-            eventHandlers={{ remove: () => setOpenPopups(prev => prev.filter(id => id !== p.id)) }}
-          >
-            <PlacePopupCard place={p} onClose={() => setOpenPopups(prev => prev.filter(id => id !== p.id))} />
-          </Popup>
-        ))}
+        {/* Render only one popup at a time */}
+        {(() => {
+          const p = openPopupId ? places.find(x => x.id === openPopupId) : undefined
+          if (!p) return null
+          return (
+            <Popup
+              key={`popup-${p.id}`}
+              position={[p.location.lat, p.location.lng] as LatLngTuple}
+              autoPan
+              closeOnClick
+              autoClose
+              offset={[0, -26]}
+              className="place-popup"
+              eventHandlers={{ remove: () => setOpenPopupId(prev => (prev === p.id ? null : prev)) }}
+            >
+              <PlacePopupCard place={p} onClose={() => setOpenPopupId(prev => (prev === p.id ? null : prev))} />
+            </Popup>
+          )
+        })()}
       </MapContainer>
       {/* styles moved to app/map.css */}
     </div>
