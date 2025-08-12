@@ -8,14 +8,21 @@ import BottomBar from '@/components/BottomBar'
 export const metadata: Metadata = {
   title: 'PartyMap',
   description: 'Find parties on the map — places, events, performers',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'PartyMap'
+  }
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#7c3aed',
-
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' }
+  ]
 }
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
