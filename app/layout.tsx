@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import 'leaflet/dist/leaflet.css'
+import './map.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import TopBar from '@/components/TopBar'
 import BottomBar from '@/components/BottomBar'
+import Toast from '@/components/Toast'
 
 export const metadata: Metadata = {
   title: 'PartyMap',
@@ -32,6 +34,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {/* Floating bars (no layout padding reserved) */}
           <TopBar />
           <BottomBar />
+          {/* Toasts */}
+          <Toast />
           {/* Map fills the whole viewport; bars simply overlay */}
           {children}
         </ThemeProvider>

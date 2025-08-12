@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, MapPin, CalendarDays, User2, Tag, LocateFixed } from 'lucide-react'
+import { Search, MapPin, CalendarDays, User2, Tag, LocateFixed, Eraser } from 'lucide-react'
 import type { SearchHit } from '@/lib/types'
 import { usePathname, useRouter } from 'next/navigation'
 
@@ -168,10 +168,19 @@ export default function SearchBar() {
   const showPanel = open
   const puffSeeds = Array.from({ length: 6 }, (_, i) => i)
 
+  const clearAll = () => {
+    setQuery('')
+    emitHighlight([])
+    emitClosePopups()
+    setItems([])
+    setOpen(false)
+    setContainerAnim('idle')
+  }
+
   return (
     <div ref={rootRef} className="relative">
       {/* Input */}
-      <div className="flex items-center gap-2 rounded-full border border-white/20 dark:border-zinc-600/50 bg-white/90 dark:bg-zinc-900/70 px-3 py-2 shadow-sm dark:shadow-md backdrop-blur-md transition focus-within:ring-2 focus-within:ring-violet-400/60 dark:focus-within:ring-violet-500/50">
+      <div className="flex items-center gap-2 rounded-full border border-white/20 dark:border-zinc/50 bg-white/90 dark:bg-zinc-900/70 px-3 py-2 shadow-sm dark:shadow-md backdrop-blur-md transition focus-within:ring-2 focus-within:ring-violet-400/60 dark:focus-within:ring-violet-500/50">
         <Search className="h-5 w-5 text-zinc-700 dark:text-zinc-300" aria-hidden />
         <input
           className="w-full bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-600 dark:placeholder-zinc-400 outline-none"
@@ -197,6 +206,15 @@ export default function SearchBar() {
             }
           }}
         />
+        <button
+          type="button"
+          onClick={clearAll}
+          title="Clear selection"
+          aria-label="Clear selection"
+          className="flex-shrink-0 inline-flex items-center justify-center rounded-full h-7 w-7 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
+        >
+          <Eraser className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Dropdown */}
