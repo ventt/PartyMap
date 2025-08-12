@@ -175,6 +175,8 @@ export default function SearchBar() {
     setItems([])
     setOpen(false)
     setContainerAnim('idle')
+    // Clear cached base highlight IDs so they don't get re-applied on next focus
+    basePlaceIdsRef.current = []
   }
 
   return (
@@ -189,8 +191,9 @@ export default function SearchBar() {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
             emitClosePopups()
-            emitHighlight(basePlaceIdsRef.current.length ? basePlaceIdsRef.current : [])
-            if (query.trim()) {
+            const hasQuery = !!query.trim()
+            if (hasQuery) {
+              emitHighlight(basePlaceIdsRef.current.length ? basePlaceIdsRef.current : [])
               if (!open) {
                 // If we have no items (or only leaving ones) refetch so user sees results again
                 if (!items.length || items.every(i => i.phase === 'leave')) {
@@ -203,6 +206,9 @@ export default function SearchBar() {
               } else if (items.length) {
                 setOpen(true)
               }
+            } else {
+              // Ensure we do not re-activate stale highlights on focusing an empty field
+              emitHighlight([])
             }
           }}
         />
