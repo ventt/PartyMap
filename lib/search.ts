@@ -88,7 +88,7 @@ export function buildSearchHits(query: string, data: SearchDataBuckets): SearchH
       }
     })
 
-  // Tag hits (unique tags across places) if tag matches beginning
+  // Tag hits (unique tags across places)
   const uniqueTags = Array.from(new Set(places.flatMap(p => p.tags)))
   const tagHits: SearchHit[] = uniqueTags
     .filter(tag => includes(tag, q))
@@ -98,7 +98,7 @@ export function buildSearchHits(query: string, data: SearchDataBuckets): SearchH
       id: tag,
       title: `#${tag}`,
       subtitle: 'Tag',
-      href: `/search?tag=${encodeURIComponent(tag)}`,
+      href: `/404`,
       image: '/placeholder.svg',
     }))
 

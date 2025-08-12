@@ -6,8 +6,8 @@ import { MapPinned, Ticket, User } from 'lucide-react'
 export default function NavActions({ variant = 'desktop' }: { variant?: 'desktop' | 'mobile' }) {
   const items = [
     { key: 'nearby', href: '#', label: 'Nearby', Icon: MapPinned },
-    { key: 'tickets', href: '#', label: 'Tickets', Icon: Ticket },
-    { key: 'profile', href: '#', label: 'Profile', Icon: User },
+    { key: 'tickets', href: '/404', label: 'Tickets', Icon: Ticket },
+    { key: 'profile', href: '/404', label: 'Profile', Icon: User },
   ]
 
   const onNearbyClick = (e: React.MouseEvent) => {
