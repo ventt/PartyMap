@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import type { Place, EventType } from '@/lib/types'
-import { EVENT_TYPE_BADGE_CLASSES } from '@/lib/types'
 import { ArrowRight, X, CalendarDays } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -71,7 +70,8 @@ export default function PlacePopupCard({
           {upcoming?.kind && (
             <span
               key={`kind-${upcoming.kind}`}
-              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${EVENT_TYPE_BADGE_CLASSES[upcoming.kind]}`}
+              data-kind={upcoming.kind}
+              className="event-badge rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize"
             >
               {upcoming.kind}
             </span>

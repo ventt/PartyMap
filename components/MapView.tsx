@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-le
 import L, { LatLngTuple } from 'leaflet'
 import { useEffect, useState, useRef } from 'react'
 import type { Place, Event, EventType } from '@/lib/types'
-import { EVENT_TYPE_BADGE_CLASSES } from '@/lib/types'
+// EVENT_TYPE_BADGE_CLASSES replaced by CSS-based .event-badge styles
 import PlacePopupCard from './PlacePopupCard'
 
 // Fancy pin (CSS driven). Shiny state adds glow + sparkles.
@@ -139,7 +139,7 @@ function PlaceLabels({
             ; (opacity = 1 - dist / maxDist)
           opacity = Math.max(0.15, Math.min(1, opacity))
         }
-  const tagColor = EVENT_TYPE_BADGE_CLASSES[upcoming.kind] // includes bg + text color
+  // style provided via CSS .event-badge[data-kind]
         const baseOffset = -72
         const highlightOffset = -80
         const offsetY = (isHighlighted || isActive) ? highlightOffset : baseOffset
@@ -178,7 +178,7 @@ function PlaceLabels({
                 <span className="text-[9px] uppercase tracking-wide font-medium text-slate-600 dark:text-slate-400 [text-shadow:0_1px_1px_rgba(0,0,0,0.4)]">
                   {p.name}
                 </span>
-                <span className={`text-[9px] leading-none font-semibold px-1 py-0.5 rounded ${tagColor} shadow [text-shadow:0_1px_1px_rgba(0,0,0,0.35)]`}>{upcoming.kind}</span>
+                <span data-kind={upcoming.kind} className="event-badge text-[9px] leading-none font-semibold px-1 py-0.5 rounded shadow [text-shadow:0_1px_1px_rgba(0,0,0,0.35)]">{upcoming.kind}</span>
               </div>
             </button>
           </div>
