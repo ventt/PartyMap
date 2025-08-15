@@ -6,6 +6,13 @@ import type { Place, Event, EventType } from '@/lib/types'
 // EVENT_TYPE_BADGE_CLASSES replaced by CSS-based .event-badge styles
 import PlacePopupCard from './PlacePopupCard'
 
+// Zoom thresholds for when floating labels become visible
+const BASE_LABEL_ZOOM = 13 // was 12, +1 per refactor request
+const HIGHLIGHT_LABEL_ZOOM = 11 // was 10, +1 per refactor request
+// Vertical offsets for label positioning (higher negative = higher above pin)
+const LABEL_BASE_OFFSET = -76 // was -72; raised slightly per request
+const LABEL_HIGHLIGHT_OFFSET = -84 // was -80; keep relative spacing
+
 // Fancy pin (CSS driven). Shiny state adds glow + sparkles.
 function fancyPinIcon(color: string, shiny: boolean) {
   return L.divIcon({
@@ -85,8 +92,8 @@ function PlaceLabels({
   const centerPt = size.divideBy(2)
   const maxDist = Math.min(size.x, size.y) * 0.9
   const zoom = map.getZoom()
-  const baseMinLabelZoom = 12
-  const highlightMinLabelZoom = 10 // allow labels earlier when there is a selection/highlight
+  const baseMinLabelZoom = BASE_LABEL_ZOOM
+  const highlightMinLabelZoom = HIGHLIGHT_LABEL_ZOOM // allow labels earlier when there is a selection/highlight
   const hasHighlights = !!(highlightIds && highlightIds.length)
   const minLabelZoom = hasHighlights ? highlightMinLabelZoom : baseMinLabelZoom
 
@@ -141,8 +148,7 @@ function PlaceLabels({
         }
   // style provided via CSS .event-badge[data-kind]
         const baseOffset = -72
-        const highlightOffset = -80
-        const offsetY = (isHighlighted || isActive) ? highlightOffset : baseOffset
+  const offsetY = (isHighlighted || isActive) ? LABEL_HIGHLIGHT_OFFSET : LABEL_BASE_OFFSET
         const finalOpacity = isActive ? 0 : opacity
         const transform = isActive
           ? `translate(-50%, ${offsetY - 34}px) scale(.6)` // animate upward + shrink as popup appears
