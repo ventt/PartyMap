@@ -142,9 +142,14 @@ function PlaceLabels({
         if (!upcoming) return null
         let opacity = 1
         if (!isHighlighted && !isActive) {
-          const dist = centerPt.distanceTo(pt)
-            ; (opacity = 1 - dist / maxDist)
-          opacity = Math.max(0.15, Math.min(1, opacity))
+          if (openPopupId || hasHighlights) {
+            // When a selection or search result context exists, make other labels barely visible
+            opacity = 0.06
+          } else {
+            const dist = centerPt.distanceTo(pt)
+            opacity = 1 - dist / maxDist
+            opacity = Math.max(0.15, Math.min(1, opacity))
+          }
         }
   // style provided via CSS .event-badge[data-kind]
         const baseOffset = -72
