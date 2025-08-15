@@ -1,9 +1,10 @@
 import Link from 'next/link'
-import type { Place } from '@/lib/types'
+import type { Place, EventType } from '@/lib/types'
+import { EVENT_TYPE_BADGE_CLASSES } from '@/lib/types'
 import { ArrowRight, X, CalendarDays } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-interface UpcomingInfo { label: string; iso: string }
+interface UpcomingInfo { label: string; iso: string; kind?: EventType }
 
 function formatUpcoming(iso: string) {
   const d = new Date(iso)
@@ -29,23 +30,25 @@ export default function PlacePopupCard({
       try {
         const res = await fetch('/api/events?place=' + place.id)
         if (!res.ok) return
-        const data = await res.json() as { events: { start: string }[] }
+        const data = await res.json() as { events: { start: string; kind?: EventType }[] }
         const now = Date.now()
-        const next = data.events
-          .map(e => e.start)
-          .map(s => new Date(s))
-          .filter(d => d.getTime() > now)
-          .sort((a,b) => a.getTime()-b.getTime())[0]
-        if (next && active) setUpcoming({ iso: next.toISOString(), label: formatUpcoming(next.toISOString()) })
+        const nextFull = data.events
+          .map(e => ({ ...e, date: new Date(e.start) }))
+          .filter(e => e.date.getTime() > now)
+          .sort((a,b) => a.date.getTime()-b.date.getTime())[0]
+        if (nextFull && active) setUpcoming({ iso: nextFull.date.toISOString(), label: formatUpcoming(nextFull.date.toISOString()), kind: nextFull.kind })
       } catch {}
     })()
     return () => { active = false }
   }, [place.id])
 
   return (
-    <div className="w-64 overflow-hidden rounded-2xl ring-1 ring-white/10 bg-white/90 dark:bg-zinc-950/90 backdrop-blur">
+    <div
+      className="place-popup-card w-72 max-w-[calc(100vw-1.25rem)] md:w-64 overflow-hidden rounded-2xl
+                 ring-1 ring-white/10 backdrop-blur-md"
+    >
       <div
-        className="h-24 bg-cover bg-center"
+        className="h-28 bg-cover bg-center"
         style={{ backgroundImage: `url(${place.image})` }}
         role="img"
         aria-label={`${place.name} photo`}
@@ -64,6 +67,15 @@ export default function PlacePopupCard({
         </div>
 
         <div className="mt-2 flex flex-wrap gap-1">
+          {/* Event kind badge first if available */}
+          {upcoming?.kind && (
+            <span
+              key={`kind-${upcoming.kind}`}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${EVENT_TYPE_BADGE_CLASSES[upcoming.kind]}`}
+            >
+              {upcoming.kind}
+            </span>
+          )}
           {place.tags.slice(0, 3).map((t) => (
             <span
               key={t}

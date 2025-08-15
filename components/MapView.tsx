@@ -1,8 +1,9 @@
 'use client'
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet'
 import L, { LatLngTuple } from 'leaflet'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import type { Place, Event, EventType } from '@/lib/types'
+import { EVENT_TYPE_BADGE_CLASSES } from '@/lib/types'
 import PlacePopupCard from './PlacePopupCard'
 
 // Fancy pin (CSS driven). Shiny state adds glow + sparkles.
@@ -34,14 +35,49 @@ function PlaceLabels({
 }) {
   const map = useMap()
   const [, force] = useState(0)
+  const frameRef = useRef<number | null>(null)
+  const interactingRef = useRef(false)
+  const [isInteracting, setIsInteracting] = useState(false)
 
   useEffect(() => {
-    const rerender = () => force(c => c + 1)
-    map.on('move', rerender)
-    map.on('zoom', rerender)
+    const schedule = () => {
+      if (frameRef.current != null) return
+      frameRef.current = requestAnimationFrame(() => {
+        frameRef.current = null
+        force(c => c + 1)
+      })
+    }
+    const onStart = () => {
+      if (!interactingRef.current) {
+        interactingRef.current = true
+        setIsInteracting(true)
+      }
+      schedule()
+    }
+    const onMove = schedule
+    const onEnd = () => {
+      schedule()
+      // Allow one more frame to land, then release interaction state (gives instant follow during gesture)
+      requestAnimationFrame(() => {
+        interactingRef.current = false
+        // Small timeout avoids flicker between rapid consecutive wheel events
+        setTimeout(() => { if (!interactingRef.current) setIsInteracting(false) }, 80)
+      })
+    }
+    map.on('movestart', onStart)
+    map.on('zoomstart', onStart)
+    map.on('move', onMove)
+    map.on('zoom', onMove)
+    map.on('moveend', onEnd)
+    map.on('zoomend', onEnd)
     return () => {
-      map.off('move', rerender)
-      map.off('zoom', rerender)
+      map.off('movestart', onStart)
+      map.off('zoomstart', onStart)
+      map.off('move', onMove)
+      map.off('zoom', onMove)
+      map.off('moveend', onEnd)
+      map.off('zoomend', onEnd)
+      if (frameRef.current != null) cancelAnimationFrame(frameRef.current)
     }
   }, [map])
 
@@ -54,15 +90,28 @@ function PlaceLabels({
   const hasHighlights = !!(highlightIds && highlightIds.length)
   const minLabelZoom = hasHighlights ? highlightMinLabelZoom : baseMinLabelZoom
 
-  const typeColors: Record<EventType, string> = {
-    disco: 'bg-pink-500',
-    techno: 'bg-indigo-500',
-    festival: 'bg-emerald-500',
-    jazz: 'bg-amber-500',
-    alter: 'bg-fuchsia-500',
-  }
+  // Using centralized event type style mapping from lib/types
 
   const now = Date.now()
+
+  // Precompute popup occlusion rectangle (approximate) to hide labels behind popup
+  let popupRect: { left: number; right: number; top: number; bottom: number } | null = null
+  if (openPopupId) {
+    const anchorPlace = places.find(pl => pl.id === openPopupId)
+    if (anchorPlace) {
+      const ppt = map.latLngToContainerPoint([anchorPlace.location.lat, anchorPlace.location.lng])
+      // Approximate popup size: wider than pin, mostly above anchor. Tune as needed.
+      const halfW = 140
+      const heightAbove = 230 // area above anchor covered by popup
+      const heightBelow = 10
+      popupRect = {
+        left: ppt.x - halfW,
+        right: ppt.x + halfW,
+        top: ppt.y - heightAbove,
+        bottom: ppt.y + heightBelow,
+      }
+    }
+  }
 
   return (
     <div className="absolute inset-0 pointer-events-none z-[600] select-none">
@@ -72,6 +121,12 @@ function PlaceLabels({
 
         const isHighlighted = !!highlightIds?.includes(p.id)
         const isActive = openPopupId === p.id
+        // Hide labels that would appear visually inside the open popup (except the active one which we already fade/transform)
+        if (!isActive && popupRect) {
+          if (pt.x >= popupRect.left && pt.x <= popupRect.right && pt.y >= popupRect.top && pt.y <= popupRect.bottom) {
+            return null
+          }
+        }
         const evts = eventsByPlace.get(p.id) || []
         const upcoming = evts
           .slice()
@@ -84,25 +139,37 @@ function PlaceLabels({
             ; (opacity = 1 - dist / maxDist)
           opacity = Math.max(0.15, Math.min(1, opacity))
         }
-        const tagColor = typeColors[upcoming.kind]
-        const offsetY = (isHighlighted || isActive) ? -80 : -72 // lift a bit more for shiny pins so text sits cleanly above
+  const tagColor = EVENT_TYPE_BADGE_CLASSES[upcoming.kind] // includes bg + text color
+        const baseOffset = -72
+        const highlightOffset = -80
+        const offsetY = (isHighlighted || isActive) ? highlightOffset : baseOffset
+        const finalOpacity = isActive ? 0 : opacity
+        const transform = isActive
+          ? `translate(-50%, ${offsetY - 34}px) scale(.6)` // animate upward + shrink as popup appears
+          : `translate(-50%, ${offsetY}px)`
         return (
-      <div
+          <div
             key={`lbl-${p.id}`}
             style={{
               position: 'absolute',
               left: pt.x,
               top: pt.y,
-        transform: `translate(-50%, ${offsetY}px)`,
-              opacity,
+              transform,
+              opacity: finalOpacity,
+              transition: isInteracting
+                ? 'opacity 160ms ease' // disable transform easing while interacting for snappy follow
+                : 'opacity 220ms ease, transform 260ms cubic-bezier(.4,.2,.2,1)',
+              pointerEvents: isActive ? 'none' : 'auto',
             }}
-            className="transition-opacity duration-200"
+            className="will-change-transform"
+            aria-hidden={isActive}
           >
             <button
               type="button"
               onClick={() => onOpen(p.id)}
               className="pointer-events-auto focus:outline-none group text-center"
               aria-label={`Open ${upcoming.title}`}
+              disabled={isActive}
             >
               <span className="block mx-auto max-w-[150px] text-[11px] font-semibold leading-tight pm-line-clamp-2 text-slate-800 dark:text-slate-100 drop-shadow-sm [text-shadow:0_1px_2px_rgba(0,0,0,0.55)] group-hover:text-pink-600 dark:group-hover:text-pink-300">
                 {upcoming.title}
@@ -111,7 +178,7 @@ function PlaceLabels({
                 <span className="text-[9px] uppercase tracking-wide font-medium text-slate-600 dark:text-slate-400 [text-shadow:0_1px_1px_rgba(0,0,0,0.4)]">
                   {p.name}
                 </span>
-                <span className={`text-[9px] leading-none font-semibold text-white px-1 py-0.5 rounded ${tagColor} shadow [text-shadow:0_1px_1px_rgba(0,0,0,0.35)]`}>{upcoming.kind}</span>
+                <span className={`text-[9px] leading-none font-semibold px-1 py-0.5 rounded ${tagColor} shadow [text-shadow:0_1px_1px_rgba(0,0,0,0.35)]`}>{upcoming.kind}</span>
               </div>
             </button>
           </div>
@@ -135,6 +202,56 @@ function FitToHighlights({ places, highlightIds }: { places: Place[]; highlightI
     const bounds = L.latLngBounds(targets.map(t => [t.location.lat, t.location.lng]) as LatLngTuple[])
     map.flyToBounds(bounds.pad(0.2), { duration: 0.8 })
   }, [highlightIds, places, map])
+  return null
+}
+
+// When a popup opens on mobile, pan the map so the pin sits near the bottom center
+function PanPopupMobile({ places, openPopupId }: { places: Place[]; openPopupId: string | null }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!openPopupId) return
+    // Only apply on small screens (< md breakpoint ~768px)
+    if (typeof window === 'undefined' || window.innerWidth >= 768) return
+    const place = places.find(p => p.id === openPopupId)
+    if (!place) return
+    try {
+      const latlng: LatLngTuple = [place.location.lat, place.location.lng]
+      // Current pixel point of the pin
+      const currentPt = map.latLngToContainerPoint(latlng)
+      const size = map.getSize()
+      const mapWidth = size.x
+      const mapHeight = size.y
+      // Approximate bottom bar height (h-16 -> 64) + outer padding (16) + safe-area inset if any
+      const bottomBar = 64 + 16 + (Number.parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)')) || 0)
+      // Pin visual height ~48; we want some breathing room above bottom bar so popup can expand upward
+      const pinHeight = 48
+      const margin = 12
+      const desiredY = mapHeight - (bottomBar + pinHeight + margin)
+      const desiredX = mapWidth / 2
+      const desiredPt = L.point(desiredX, desiredY)
+      const offset = currentPt.subtract(desiredPt)
+      // Threshold to avoid micro pans
+      if (Math.abs(offset.x) + Math.abs(offset.y) < 6) return
+      map.panBy(offset, { animate: true, duration: 0.5 })
+    } catch {}
+  }, [openPopupId, places, map])
+  // Re-run on orientation / resize to keep visible if dimensions change
+  useEffect(() => {
+    const handler = () => {
+      if (!openPopupId) return
+      // trigger effect by cloning id ref (force update via state not needed: rely on dependency change via timeouts)
+      setTimeout(() => {
+        // Recalculate by updating state indirectly: simply calling map.fire will not re-run; we can force by panning 0 (noop)
+        try { map.panBy([0,0], { animate: false }) } catch {}
+      }, 50)
+    }
+    window.addEventListener('resize', handler)
+    window.addEventListener('orientationchange', handler as any)
+    return () => {
+      window.removeEventListener('resize', handler)
+      window.removeEventListener('orientationchange', handler as any)
+    }
+  }, [openPopupId, map])
   return null
 }
 
@@ -307,10 +424,12 @@ export default function MapView({ places, events, isDark = false, highlightIds, 
             <Popup
               key={`popup-${p.id}`}
               position={[p.location.lat, p.location.lng] as LatLngTuple}
-              autoPan
+      // We handle panning manually for mobile to keep pin near bottom
+      autoPan={false}
               closeOnClick
               autoClose
-              offset={[0, -26]}
+              // Raise popup higher above pin to avoid visual collision
+              offset={[0, -48]}
               className="place-popup"
               eventHandlers={{ remove: () => setOpenPopupId(prev => (prev === p.id ? null : prev)) }}
             >
@@ -318,6 +437,8 @@ export default function MapView({ places, events, isDark = false, highlightIds, 
             </Popup>
           )
         })()}
+    {/* Mobile pan adjustment component */}
+    <PanPopupMobile places={places} openPopupId={openPopupId} />
       </MapContainer>
       {/* styles moved to app/map.css */}
     </div>
