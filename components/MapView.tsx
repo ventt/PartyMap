@@ -428,6 +428,7 @@ export default function MapView({ places, events, isDark = false, highlightIds, 
               position={[p.location.lat, p.location.lng] as LatLngTuple}
       // We handle panning manually for mobile to keep pin near bottom
       autoPan={false}
+              closeButton={false}
               closeOnClick
               autoClose
               // Raise popup higher above pin to avoid visual collision
