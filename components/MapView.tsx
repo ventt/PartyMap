@@ -171,7 +171,7 @@ function PlaceLabels({
               aria-label={`Open ${upcoming.title}`}
               disabled={isActive}
             >
-              <span className="block mx-auto max-w-[150px] text-[11px] font-semibold leading-tight pm-line-clamp-2 text-slate-800 dark:text-slate-100 drop-shadow-sm [text-shadow:0_1px_2px_rgba(0,0,0,0.55)] group-hover:text-pink-600 dark:group-hover:text-pink-300">
+              <span className="block mx-auto text-[11px] font-semibold leading-tight whitespace-nowrap text-slate-800 dark:text-slate-100 drop-shadow-sm [text-shadow:0_1px_2px_rgba(0,0,0,0.55)] group-hover:text-pink-600 dark:group-hover:text-pink-300">
                 {upcoming.title}
               </span>
               <div className="mt-0.5 flex items-center gap-1 justify-center">
@@ -210,30 +210,26 @@ function PanPopupMobile({ places, openPopupId }: { places: Place[]; openPopupId:
   const map = useMap()
   useEffect(() => {
     if (!openPopupId) return
-    // Only apply on small screens (< md breakpoint ~768px)
     if (typeof window === 'undefined' || window.innerWidth >= 768) return
     const place = places.find(p => p.id === openPopupId)
     if (!place) return
-    try {
-      const latlng: LatLngTuple = [place.location.lat, place.location.lng]
-      // Current pixel point of the pin
-      const currentPt = map.latLngToContainerPoint(latlng)
-      const size = map.getSize()
-      const mapWidth = size.x
-      const mapHeight = size.y
-      // Approximate bottom bar height (h-16 -> 64) + outer padding (16) + safe-area inset if any
-      const bottomBar = 64 + 16 + (Number.parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)')) || 0)
-      // Pin visual height ~48; we want some breathing room above bottom bar so popup can expand upward
-      const pinHeight = 48
-      const margin = 12
-      const desiredY = mapHeight - (bottomBar + pinHeight + margin)
-      const desiredX = mapWidth / 2
-      const desiredPt = L.point(desiredX, desiredY)
-      const offset = currentPt.subtract(desiredPt)
-      // Threshold to avoid micro pans
-      if (Math.abs(offset.x) + Math.abs(offset.y) < 6) return
-      map.panBy(offset, { animate: true, duration: 0.5 })
-    } catch {}
+    let frame: number | null = null
+    frame = requestAnimationFrame(() => {
+      try {
+        const latlng: LatLngTuple = [place.location.lat, place.location.lng]
+        const currentPt = map.latLngToContainerPoint(latlng)
+        const size = map.getSize()
+        const bottomBar = 64 + 16 + (Number.parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)')) || 0)
+        const pinHeight = 48
+        const margin = 12
+        const desiredPt = L.point(size.x / 2, size.y - (bottomBar + pinHeight + margin))
+        const offset = currentPt.subtract(desiredPt)
+        if (Math.abs(offset.x) + Math.abs(offset.y) < 6) return
+        // Use shorter duration to reduce perceived flicker; rely on CSS transitions inside popup
+        map.panBy(offset, { animate: true, duration: 0.35 })
+      } catch {}
+    })
+    return () => { if (frame) cancelAnimationFrame(frame) }
   }, [openPopupId, places, map])
   // Re-run on orientation / resize to keep visible if dimensions change
   useEffect(() => {
