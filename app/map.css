@@ -32,3 +32,7 @@
 .pm-you .w2 { animation: pm-you-wave 2.4s ease-out 1.2s infinite; }
 @keyframes pm-you-wave { 0% { transform:scale(.5); opacity:.8; } 70% { opacity:0; } 100% { transform:scale(1.7); opacity:0; } }
 @keyframes pm-you-rotate { to { transform: rotate(360deg); } }
+
+/* Floating place/event labels */
+.pm-label { font-family: system-ui, ui-sans-serif, 'Inter', sans-serif; }
+.pm-line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }

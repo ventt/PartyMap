@@ -35,7 +35,10 @@ export type Event = {
   image: string
   performerIds: ID[]
   price?: string
+  kind: EventType
 }
+
+export type EventType = 'disco' | 'techno' | 'festival' | 'jazz' | 'alter'
 
 export type SearchHit = {
   type: 'place' | 'event' | 'performer' | 'tag' // added 'tag'

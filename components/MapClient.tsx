@@ -1,6 +1,6 @@
 'use client'
 import dynamic from 'next/dynamic'
-import type { Place } from '@/lib/types'
+import type { Place, Event } from '@/lib/types'
 import { useTheme } from './ThemeProvider'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -11,7 +11,7 @@ import { PopupControllerImpl } from '@/lib/map/PopupController'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
-export default function MapClient({ places }: { places: Place[] }) {
+export default function MapClient({ places, events }: { places: Place[]; events: Event[] }) {
   const { theme } = useTheme()
   const [highlightIds, setHighlightIds] = useState<string[] | undefined>()
   const [activePlaceId, setActivePlaceId] = useState<string | null>(null)
@@ -27,7 +27,7 @@ export default function MapClient({ places }: { places: Place[] }) {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const ce = e as CustomEvent<{ placeIds: string[] }>
+      const ce = e as unknown as CustomEvent<{ placeIds: string[] }>
       setHighlightIds(ce.detail.placeIds)
       if (ce.detail.placeIds.length === 0) { setActivePlaceId(null); setActivePlaceIds(null) }
     }
@@ -37,7 +37,7 @@ export default function MapClient({ places }: { places: Place[] }) {
 
   useEffect(() => {
     const onUserPos = (e: Event) => {
-      const ce = e as CustomEvent<LatLng>
+      const ce = e as unknown as CustomEvent<LatLng>
       setLastUserPos({ lat: ce.detail.lat, lng: ce.detail.lng })
       setLastUserPosAt(Date.now())
     }
@@ -47,7 +47,7 @@ export default function MapClient({ places }: { places: Place[] }) {
 
   useEffect(() => {
     const openHandler = (e: Event) => {
-      const ce = e as CustomEvent<{ placeId: string }>
+      const ce = e as unknown as CustomEvent<{ placeId: string }>
       setActivePlaceId(ce.detail.placeId)
       setActivePlaceIds(null)
     }
@@ -141,5 +141,5 @@ export default function MapClient({ places }: { places: Place[] }) {
     return () => window.removeEventListener('pm:nearby', onNearby)
   }, [places, lastUserPos, lastUserPosAt, primaryCity])
 
-  return <MapView places={places} isDark={theme === 'dark'} highlightIds={highlightIds} activePlaceId={activePlaceId} activePlaceIds={activePlaceIds ?? undefined} />
+  return <MapView places={places} events={events} isDark={theme === 'dark'} highlightIds={highlightIds} activePlaceId={activePlaceId} activePlaceIds={activePlaceIds ?? undefined} />
 }

@@ -154,6 +154,7 @@ export const events: Event[] = [
     image: 'https://images.unsplash.com/photo-1540040582279-4d6cdf2d1b8b?q=80&w=1280&auto=format&fit=crop',
     performerIds: ['a1'],
     price: '€15',
+  kind: 'disco',
   },
   {
     id: 'e2',
@@ -165,6 +166,7 @@ export const events: Event[] = [
     image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1280&auto=format&fit=crop',
     performerIds: ['a3'],
     price: 'Free',
+  kind: 'alter',
   },
   {
     id: 'e3',
@@ -176,6 +178,7 @@ export const events: Event[] = [
     image: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?q=80&w=1280&auto=format&fit=crop',
     performerIds: ['a1', 'a2'],
     price: '€20',
+  kind: 'techno',
   },
 
   // new — Lake Balaton
@@ -189,6 +192,7 @@ export const events: Event[] = [
     image: 'https://images.unsplash.com/photo-1515706886582-54c73c5eaf41?q=80&w=1280&auto=format&fit=crop',
     performerIds: ['a4'],
     price: 'HUF 4,500',
+  kind: 'festival',
   },
   {
     id: 'e5',
@@ -200,6 +204,7 @@ export const events: Event[] = [
     image: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?q=80&w=1280&auto=format&fit=crop',
     performerIds: ['a1', 'a4'],
     price: 'HUF 3,900',
+  kind: 'disco',
   },
   {
     id: 'e6',
@@ -211,6 +216,7 @@ export const events: Event[] = [
     image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=1280&auto=format&fit=crop',
     performerIds: ['a3'],
     price: 'HUF 5,200',
+  kind: 'techno',
   },
 
   // new — Székesfehérvár
@@ -224,6 +230,7 @@ export const events: Event[] = [
     image: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?q=80&w=1280&auto=format&fit=crop',
     performerIds: ['a5'],
     price: 'HUF 3,500',
+  kind: 'alter',
   },
 
   // new — Szeged
@@ -237,5 +244,6 @@ export const events: Event[] = [
     image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1280&auto=format&fit=crop',
     performerIds: ['a6'],
     price: 'HUF 4,200',
+  kind: 'jazz',
   },
 ]

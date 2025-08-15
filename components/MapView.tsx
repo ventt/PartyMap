@@ -2,7 +2,7 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet'
 import L, { LatLngTuple } from 'leaflet'
 import { useEffect, useState } from 'react'
-import type { Place } from '@/lib/types'
+import type { Place, Event, EventType } from '@/lib/types'
 import PlacePopupCard from './PlacePopupCard'
 
 // Fancy pin (CSS driven). Shiny state adds glow + sparkles.
@@ -16,7 +16,106 @@ function fancyPinIcon(color: string, shiny: boolean) {
   })
 }
 
-interface Props { places: Place[]; isDark?: boolean; highlightIds?: string[]; activePlaceId?: string | null; activePlaceIds?: string[] }
+interface Props { places: Place[]; events: Event[]; isDark?: boolean; highlightIds?: string[]; activePlaceId?: string | null; activePlaceIds?: string[] }
+
+// Floating labels above pins showing event name, place, and type tag
+function PlaceLabels({
+  places,
+  eventsByPlace,
+  highlightIds,
+  openPopupId,
+  onOpen,
+}: {
+  places: Place[]
+  eventsByPlace: Map<string, Event[]>
+  highlightIds?: string[]
+  openPopupId: string | null
+  onOpen: (id: string) => void
+}) {
+  const map = useMap()
+  const [, force] = useState(0)
+
+  useEffect(() => {
+    const rerender = () => force(c => c + 1)
+    map.on('move', rerender)
+    map.on('zoom', rerender)
+    return () => {
+      map.off('move', rerender)
+      map.off('zoom', rerender)
+    }
+  }, [map])
+
+  const size = map.getSize()
+  const centerPt = size.divideBy(2)
+  const maxDist = Math.min(size.x, size.y) * 0.9
+  const zoom = map.getZoom()
+  const minLabelZoom = 12 // show labels a bit earlier (was 14)
+
+  const typeColors: Record<EventType, string> = {
+    disco: 'bg-pink-500',
+    techno: 'bg-indigo-500',
+    festival: 'bg-emerald-500',
+    jazz: 'bg-amber-500',
+    alter: 'bg-fuchsia-500',
+  }
+
+  const now = Date.now()
+
+  return (
+    <div className="absolute inset-0 pointer-events-none z-[600] select-none">
+  {zoom < minLabelZoom ? null : places.map(p => {
+        const pt = map.latLngToContainerPoint([p.location.lat, p.location.lng])
+        if (pt.x < -80 || pt.y < -80 || pt.x > size.x + 80 || pt.y > size.y + 80) return null
+
+        const isHighlighted = !!highlightIds?.includes(p.id)
+        const isActive = openPopupId === p.id
+        const evts = eventsByPlace.get(p.id) || []
+        const upcoming = evts
+          .slice()
+          .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+          .find(e => new Date(e.end).getTime() >= now) || evts[0]
+        if (!upcoming) return null
+        let opacity = 1
+        if (!isHighlighted && !isActive) {
+          const dist = centerPt.distanceTo(pt)
+            ; (opacity = 1 - dist / maxDist)
+          opacity = Math.max(0.15, Math.min(1, opacity))
+        }
+        const tagColor = typeColors[upcoming.kind]
+        return (
+      <div
+            key={`lbl-${p.id}`}
+            style={{
+              position: 'absolute',
+              left: pt.x,
+              top: pt.y,
+        transform: 'translate(-50%, -72px)',
+              opacity,
+            }}
+            className="transition-opacity duration-200"
+          >
+            <button
+              type="button"
+              onClick={() => onOpen(p.id)}
+              className="pointer-events-auto focus:outline-none group text-center"
+              aria-label={`Open ${upcoming.title}`}
+            >
+              <span className="block mx-auto max-w-[150px] text-[11px] font-semibold leading-tight pm-line-clamp-2 text-slate-800 dark:text-slate-100 drop-shadow-sm [text-shadow:0_1px_2px_rgba(0,0,0,0.55)] group-hover:text-pink-600 dark:group-hover:text-pink-300">
+                {upcoming.title}
+              </span>
+              <div className="mt-0.5 flex items-center gap-1 justify-center">
+                <span className="text-[9px] uppercase tracking-wide font-medium text-slate-600 dark:text-slate-400 [text-shadow:0_1px_1px_rgba(0,0,0,0.4)]">
+                  {p.name}
+                </span>
+                <span className={`text-[9px] leading-none font-semibold text-white px-1 py-0.5 rounded ${tagColor} shadow [text-shadow:0_1px_1px_rgba(0,0,0,0.35)]`}>{upcoming.kind}</span>
+              </div>
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 function FitToHighlights({ places, highlightIds }: { places: Place[]; highlightIds?: string[] }) {
   const map = useMap()
@@ -125,9 +224,13 @@ function DesktopZoomControls() {
   )
 }
 
-export default function MapView({ places, isDark = false, highlightIds, activePlaceId, activePlaceIds }: Props) {
+export default function MapView({ places, events, isDark = false, highlightIds, activePlaceId, activePlaceIds }: Props) {
   // Single-popup state
   const [openPopupId, setOpenPopupId] = useState<string | null>(null)
+  const eventsByPlace = new Map<string, Event[]>()
+  for (const e of events) {
+    eventsByPlace.set(e.placeId, [...(eventsByPlace.get(e.placeId) || []), e])
+  }
   const center: LatLngTuple = [47.4979, 19.0402]
   const tileUrl = isDark
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
@@ -167,11 +270,13 @@ export default function MapView({ places, isDark = false, highlightIds, activePl
         style={{ zIndex: 0 }}
       >
         <TileLayer attribution={attribution} url={tileUrl} />
-        <FitToHighlights places={places} highlightIds={highlightIds} />
+  <FitToHighlights places={places} highlightIds={highlightIds} />
         {/* Geolocate user and center map if allowed */}
         <UserLocation />
         {/* Custom desktop zoom controls */}
         <DesktopZoomControls />
+  {/* Floating labels */}
+  <PlaceLabels places={places} eventsByPlace={eventsByPlace} highlightIds={highlightIds} openPopupId={openPopupId} onOpen={(id) => setOpenPopupId(prev => prev === id ? null : id)} />
         {places.map((p) => {
           const isHighlighted = !!highlightIds?.includes(p.id)
           const isActive = openPopupId === p.id
