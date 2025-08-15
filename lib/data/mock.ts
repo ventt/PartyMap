@@ -9,7 +9,7 @@ export const places: Place[] = [
     address: 'Riverbank 12',
     city: 'Budapest',
     description: 'Riverside club with two dance floors and a rooftop terrace.',
-    image: 'https://images.unsplash.com/photo-1550951064-6f3b49908f07?q=80&w=1280&auto=format&fit=crop',
+  image: 'https://images.unsplash.com/photo-1667992403195-d2241a40ca2d?auto=format&fit=crop&w=1280&q=80', // updated terrace image
     tags: ['house', 'techno', 'rooftop'],
   },
   {
@@ -87,6 +87,38 @@ export const places: Place[] = [
     description: 'Neon-lit riverside terrace with synth and retro nights.',
     image: 'https://images.unsplash.com/photo-1520975693415-1a?ixlib=rb-4.0.3&q=80&w=1280&auto=format&fit=crop',
     tags: ['synthwave', 'retro', 'terrace'],
+  },
+  // ——— New test: Budapest home locations ———
+  {
+    id: 'p9',
+    name: 'Dénes Pince',
+  location: { lat: 47.408248, lng: 19.015077 }, // exact provided
+    address: 'Lépcsős utca 4',
+    city: 'Budapest',
+    description: 'Cozy basement hangout for intimate home gatherings.',
+    image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?q=80&w=1280&auto=format&fit=crop',
+    tags: ['chill', 'basement', 'friendly'],
+  },
+  {
+    id: 'p10',
+    name: 'Bence Terasz',
+  location: { lat: 47.424137, lng: 19.014703 }, // exact provided
+    address: 'Zakariás József utca 5',
+    city: 'Budapest',
+    description: 'Private terrace vibe overlooking the quiet suburban streets.',
+    image: 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=1280&auto=format&fit=crop',
+    tags: ['chill', 'terrace', 'friendly'],
+  },
+  // New pub test location
+  {
+    id: 'p11',
+    name: 'Poldi Bácsi Sörözö',
+    location: { lat: 47.4408014178659, lng: 19.02280223577477 },
+  address: 'Ady Endre út 95',
+    city: 'Budapest',
+    description: 'Cozy local pub for socializing and late-night sessions.',
+    image: 'https://images.unsplash.com/photo-1510626176961-4b57d4fbad03?auto=format&fit=crop&w=1280&q=80',
+    tags: ['alter', 'techno', 'socializing', 'pub'],
   },
 ]
 
@@ -245,5 +277,43 @@ export const events: Event[] = [
     performerIds: ['a6'],
     price: 'HUF 4,200',
   kind: 'jazz',
+  },
+  // New test events (home party kind)
+  {
+    id: 'e9',
+    title: 'Folyás a pincébe',
+    placeId: 'p9',
+    description: 'Laid-back basement home party with friendly crowd.',
+    start: new Date(Date.now() + 86400000 * 2 + 21 * 3600000).toISOString(), // ~2 days 21:00
+    end: new Date(Date.now() + 86400000 * 3 + 2 * 3600000).toISOString(),     // ~next day 02:00
+  image: 'https://images.unsplash.com/photo-1646184466560-f81b1e495604?auto=format&fit=crop&w=1280&q=80', // updated basement image
+    performerIds: [],
+    price: 'Free',
+  kind: 'home', // new home party event type
+  },
+  {
+    id: 'e10',
+    title: 'Terasz Buli',
+    placeId: 'p10',
+    description: 'Chill terrace evening with good friends and mellow tunes.',
+    start: new Date(Date.now() + 86400000 * 4 + 19 * 3600000).toISOString(), // ~4 days 19:00
+    end: new Date(Date.now() + 86400000 * 5 + 1 * 3600000).toISOString(),     // ~next day 01:00
+  image: 'https://images.unsplash.com/photo-1667992403195-d2241a40ca2d?auto=format&fit=crop&w=1280&q=80', // fixed terrace image (was broken ID)
+    performerIds: [],
+    price: 'Free',
+  kind: 'home', // new home party event type
+  },
+  // New pub event
+  {
+    id: 'e11',
+    title: 'Masszív ivás',
+    placeId: 'p11',
+    description: 'Deep session of social drinking and beats.',
+    start: new Date(Date.now() + 86400000 * 2 + 20 * 3600000).toISOString(), // ~2 days 20:00
+    end: new Date(Date.now() + 86400000 * 3 + 2 * 3600000).toISOString(),     // ~next day 02:00
+    image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=1280&q=80',
+    performerIds: [],
+    price: 'Free',
+    kind: 'pub',
   },
 ]

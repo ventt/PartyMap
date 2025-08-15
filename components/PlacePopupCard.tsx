@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Place, EventType, Event } from '@/lib/types'
+import { EVENT_TYPE_LABELS } from '@/lib/types'
 import { ArrowRight, X, CalendarDays } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -108,14 +109,16 @@ export default function PlacePopupCard({ place, onClose }: { place: Place; onClo
           ].filter(Boolean).map((t: any) => {
             const common = 'rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/50';
             if (t.isKind) {
+              const rawKind = t.label as EventType
+              const display = EVENT_TYPE_LABELS[rawKind] || rawKind
               return (
                 <Link
                   key={t.key}
-                  href={`/tags/${encodeURIComponent(t.label)}`}
-                  data-kind={t.label}
-                  className={`event-badge capitalize px-2.5 py-0.5 text-[11px] font-semibold ${common}`}
+                  href={`/tags/${encodeURIComponent(rawKind)}`}
+                  data-kind={rawKind}
+                  className={`event-badge px-2.5 py-0.5 text-[11px] font-semibold ${common}`}
                 >
-                  {t.label}
+                  {display}
                 </Link>
               )
             }

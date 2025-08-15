@@ -59,3 +59,5 @@ html.dark .leaflet-container { background:rgb(13,13,13) !important; }
 .event-badge[data-kind=festival] { background:#10b981; color:#fff; }
 .event-badge[data-kind=jazz] { background:#f59e0b; color:#fff; }
 .event-badge[data-kind=alter] { background:#d946ef; color:#fff; }
+.event-badge[data-kind=home] { background:#06b6d4; color:#fff; }
+.event-badge[data-kind=pub] { background:#92400e; color:#fefce8; }
