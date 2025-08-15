@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, MapPin, CalendarDays, User2, Tag, LocateFixed, Eraser, EyeOff } from 'lucide-react'
+import { Search, MapPin, CalendarDays, User2, Tag, LocateFixed, Eraser, Minimize2 } from 'lucide-react'
 import type { SearchHit } from '@/lib/types'
 import { usePathname, useRouter } from 'next/navigation'
 
@@ -228,16 +228,24 @@ export default function SearchBar() {
             }
           }}
         />
-        {query.trim() && open && (
-          <button
-            type="button"
-            onClick={dismissResults}
-            title="Hide results"
-            aria-label="Hide results"
-            className="flex-shrink-0 inline-flex items-center justify-center rounded-full h-7 w-7 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
-          >
-            <EyeOff className="h-4 w-4" />
-          </button>
+        {query.trim() && (
+          (() => {
+            const active = open
+            return (
+              <button
+                type="button"
+                onClick={active ? dismissResults : undefined}
+                title={active ? 'Hide results' : 'Results hidden'}
+                aria-label={active ? 'Hide results' : 'Results hidden'}
+                aria-disabled={!active}
+                className={`flex-shrink-0 inline-flex items-center justify-center rounded-full h-7 w-7 transition-colors focus:outline-none focus-visible:ring-2 ${active
+                  ? 'text-white bg-violet-600/80 hover:bg-violet-600 focus-visible:ring-violet-400/60'
+                  : 'text-zinc-500 dark:text-zinc-500 opacity-60 pointer-events-none'} `}
+              >
+                <Minimize2 className="h-4 w-4" />
+              </button>
+            )
+          })()
         )}
         <button
           type="button"
