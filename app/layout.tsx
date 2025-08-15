@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 import TopBar from '@/components/TopBar'
 import BottomBar from '@/components/BottomBar'
 import Toast from '@/components/Toast'
+import GdprConsent from '@/components/GdprConsent'
 
 export const metadata: Metadata = {
   title: 'PartyMap',
@@ -38,6 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Toast />
           {/* Map fills the whole viewport; bars simply overlay */}
           {children}
+          {/* GDPR Consent */}
+          <GdprConsent />
         </ThemeProvider>
       </body>
     </html>
