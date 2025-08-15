@@ -326,13 +326,46 @@ function UserLocation({ auto = true }: { auto?: boolean }) {
 // Desktop-only custom zoom controls (glassmorphism)
 function DesktopZoomControls() {
   const map = useMap()
+  const stopAll = (e: React.SyntheticEvent) => { e.stopPropagation(); }
+  function preciseZoom(kind: 'in' | 'out') {
+    try {
+      const preCenter = map.getCenter()
+      const size = map.getSize()
+      const viewCenterPt = L.point(size.x / 2, size.y / 2)
+      map.once('zoomend', () => {
+        try {
+          const postPt = map.latLngToContainerPoint(preCenter)
+          const dx = postPt.x - viewCenterPt.x
+          const dy = postPt.y - viewCenterPt.y
+          if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+            // Counter-pan to keep visual center stable (no animation to avoid wobble)
+            map.panBy([-dx, -dy], { animate: false })
+          }
+        } catch {}
+      })
+      kind === 'in' ? map.zoomIn() : map.zoomOut()
+    } catch {}
+  }
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    try {
+      L.DomEvent.disableClickPropagation(el)
+      L.DomEvent.disableScrollPropagation(el)
+    } catch {}
+  }, [])
   return (
-    <div className="hidden md:flex absolute right-4 top-24 z-[1000] select-none">
+    <div ref={containerRef} className="hidden md:flex absolute right-4 top-24 z-[1000] select-none pm-zoom-controls">
       <div className="flex flex-col overflow-hidden rounded-2xl backdrop-blur-xl bg-white/70 dark:bg-slate-900/50 border border-black/10 dark:border-white/10 shadow-lg divide-y divide-black/10 dark:divide-white/10">
         <button
           aria-label="Zoom in"
           className="h-11 w-11 grid place-items-center text-slate-800 dark:text-slate-100 hover:bg-white/90 dark:hover:bg-slate-800/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/60 active:scale-95"
-          onClick={() => map.zoomIn()}
+          onPointerDown={(e) => { e.stopPropagation(); try { map.dragging.disable() } catch {}; }}
+          onPointerUp={(e) => { e.stopPropagation(); try { map.dragging.enable() } catch {}; }}
+          onPointerLeave={() => { try { map.dragging.enable() } catch {}; }}
+          onPointerCancel={() => { try { map.dragging.enable() } catch {}; }}
+          onClick={(e) => { e.stopPropagation(); (window as any).__pmLastZoomClick = Date.now(); preciseZoom('in') }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 5v14M5 12h14"/>
@@ -341,7 +374,11 @@ function DesktopZoomControls() {
         <button
           aria-label="Zoom out"
           className="h-11 w-11 grid place-items-center text-slate-800 dark:text-slate-100 hover:bg-white/90 dark:hover:bg-slate-800/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/60 active:scale-95"
-          onClick={() => map.zoomOut()}
+          onPointerDown={(e) => { e.stopPropagation(); try { map.dragging.disable() } catch {}; }}
+          onPointerUp={(e) => { e.stopPropagation(); try { map.dragging.enable() } catch {}; }}
+          onPointerLeave={() => { try { map.dragging.enable() } catch {}; }}
+          onPointerCancel={() => { try { map.dragging.enable() } catch {}; }}
+          onClick={(e) => { e.stopPropagation(); (window as any).__pmLastZoomClick = Date.now(); preciseZoom('out') }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M5 12h14"/>
@@ -350,6 +387,27 @@ function DesktopZoomControls() {
       </div>
     </div>
   )
+}
+
+// Close popup on map background clicks only
+function MapBackgroundCloser({ onClose }: { onClose: () => void }) {
+  const map = useMap()
+  useEffect(() => {
+    const handler = (e: any) => {
+      const t = e.originalEvent?.target as HTMLElement | null
+      if (!t) return
+      // Ignore clicks originating inside zoom controls or popup
+      if (t.closest('.pm-zoom-controls')) return
+      if (t.closest('.leaflet-popup')) return
+  // Ignore immediately after a zoom control click to avoid race with synthetic map click
+  const last = (window as any).__pmLastZoomClick as number | undefined
+  if (last && Date.now() - last < 250) return
+      onClose()
+    }
+    map.on('click', handler)
+    return () => { map.off('click', handler) }
+  }, [map, onClose])
+  return null
 }
 
 export default function MapView({ places, events, isDark = false, highlightIds, activePlaceId, activePlaceIds }: Props) {
@@ -434,8 +492,8 @@ export default function MapView({ places, events, isDark = false, highlightIds, 
       // We handle panning manually for mobile to keep pin near bottom
       autoPan={false}
               closeButton={false}
-              closeOnClick
-              autoClose
+              closeOnClick={false}
+              autoClose={false}
               // Raise popup higher above pin to avoid visual collision
               offset={[0, -48]}
               className="place-popup"
@@ -446,7 +504,8 @@ export default function MapView({ places, events, isDark = false, highlightIds, 
           )
         })()}
     {/* Mobile pan adjustment component */}
-    <PanPopupMobile places={places} openPopupId={openPopupId} />
+  <PanPopupMobile places={places} openPopupId={openPopupId} />
+  <MapBackgroundCloser onClose={() => setOpenPopupId(null)} />
       </MapContainer>
       {/* styles moved to app/map.css */}
     </div>
