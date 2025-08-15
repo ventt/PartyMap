@@ -49,7 +49,10 @@ function PlaceLabels({
   const centerPt = size.divideBy(2)
   const maxDist = Math.min(size.x, size.y) * 0.9
   const zoom = map.getZoom()
-  const minLabelZoom = 12 // show labels a bit earlier (was 14)
+  const baseMinLabelZoom = 12
+  const highlightMinLabelZoom = 10 // allow labels earlier when there is a selection/highlight
+  const hasHighlights = !!(highlightIds && highlightIds.length)
+  const minLabelZoom = hasHighlights ? highlightMinLabelZoom : baseMinLabelZoom
 
   const typeColors: Record<EventType, string> = {
     disco: 'bg-pink-500',
@@ -82,6 +85,7 @@ function PlaceLabels({
           opacity = Math.max(0.15, Math.min(1, opacity))
         }
         const tagColor = typeColors[upcoming.kind]
+        const offsetY = (isHighlighted || isActive) ? -80 : -72 // lift a bit more for shiny pins so text sits cleanly above
         return (
       <div
             key={`lbl-${p.id}`}
@@ -89,7 +93,7 @@ function PlaceLabels({
               position: 'absolute',
               left: pt.x,
               top: pt.y,
-        transform: 'translate(-50%, -72px)',
+        transform: `translate(-50%, ${offsetY}px)`,
               opacity,
             }}
             className="transition-opacity duration-200"
