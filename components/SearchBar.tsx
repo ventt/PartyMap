@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, MapPin, CalendarDays, User2, Tag, LocateFixed, Eraser } from 'lucide-react'
+import { Search, MapPin, CalendarDays, User2, Tag, LocateFixed, Eraser, EyeOff } from 'lucide-react'
 import type { SearchHit } from '@/lib/types'
 import { usePathname, useRouter } from 'next/navigation'
 
@@ -28,6 +28,7 @@ export default function SearchBar() {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [containerAnim, setContainerAnim] = useState<'enter' | 'idle' | 'leave'>('idle')
+  const inputRef = useRef<HTMLInputElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const firstOpenRef = useRef(false)
   // navigation hooks
@@ -115,6 +116,12 @@ export default function SearchBar() {
     setTimeout(() => { setOpen(false); setItems([]); setContainerAnim('idle'); firstOpenRef.current = false }, 260)
   }
 
+  function dismissResults() {
+    // Hide dropdown but keep query & highlights; blur to close mobile keyboard
+    closeDropdown()
+    requestAnimationFrame(() => { inputRef.current?.blur() })
+  }
+
   // Fetch results (debounced) -> diff items, animate enter/leave per item
   useEffect(() => {
     const t = setTimeout(async () => {
@@ -189,6 +196,15 @@ export default function SearchBar() {
           placeholder="Search places, events, performers, tags"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          ref={inputRef}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              if (query.trim()) {
+                e.preventDefault()
+                dismissResults()
+              }
+            }
+          }}
           onFocus={() => {
             emitClosePopups()
             const hasQuery = !!query.trim()
@@ -212,6 +228,17 @@ export default function SearchBar() {
             }
           }}
         />
+        {query.trim() && open && (
+          <button
+            type="button"
+            onClick={dismissResults}
+            title="Hide results"
+            aria-label="Hide results"
+            className="flex-shrink-0 inline-flex items-center justify-center rounded-full h-7 w-7 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/70 dark:hover:bg-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
+          >
+            <EyeOff className="h-4 w-4" />
+          </button>
+        )}
         <button
           type="button"
           onClick={clearAll}
