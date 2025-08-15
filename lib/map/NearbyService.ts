@@ -25,23 +25,34 @@ export class NearbyService implements NearbyStrategy {
     const inCity = places.filter(p => p.city === city)
     let found: Place[] = []
     for (const r of this.baseRadii) {
-      found = inCity.filter(p => haversine(user, p.location) <= r)
-      if (found.length >= this.MIN_RESULTS) break
+      const within = inCity.filter(p => haversine(user, p.location) <= r)
+      if (within.length) {
+        found = within
+        if (within.length >= this.MIN_RESULTS) break
+      }
     }
+    // Pad with closest remaining in city if still short
     if (found.length < this.MIN_RESULTS) {
       const pad = inCity
         .filter(p => !found.some(f => f.id === p.id))
         .sort((a,b) => haversine(user, a.location) - haversine(user, b.location))
       found = found.concat(pad.slice(0, Math.max(0, this.MIN_RESULTS - found.length)))
     }
-    return found.slice(0, this.MIN_RESULTS).map(p => p.id)
+    // Final distance sort so closest always surface first regardless of insertion order
+    found = found
+      .sort((a,b) => haversine(user, a.location) - haversine(user, b.location))
+      .slice(0, this.MIN_RESULTS)
+    return found.map(p => p.id)
   }
 
   private findGlobal(user: LatLng, places: Place[]): string[] {
     let found: Place[] = []
     for (const r of this.baseRadii) {
-      found = places.filter(p => haversine(user, p.location) <= r)
-      if (found.length >= this.MIN_RESULTS) break
+      const within = places.filter(p => haversine(user, p.location) <= r)
+      if (within.length) {
+        found = within
+        if (within.length >= this.MIN_RESULTS) break
+      }
     }
     if (found.length < this.MIN_RESULTS) {
       const pad = [...places]
@@ -49,6 +60,9 @@ export class NearbyService implements NearbyStrategy {
         .sort((a,b) => haversine(user, a.location) - haversine(user, b.location))
       found = found.concat(pad.slice(0, Math.max(0, this.MIN_RESULTS - found.length)))
     }
-    return found.slice(0, this.MIN_RESULTS).map(p => p.id)
+    found = found
+      .sort((a,b) => haversine(user, a.location) - haversine(user, b.location))
+      .slice(0, this.MIN_RESULTS)
+    return found.map(p => p.id)
   }
 }
