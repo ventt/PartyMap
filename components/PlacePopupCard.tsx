@@ -53,12 +53,32 @@ export default function PlacePopupCard({ place, onClose }: { place: Place; onClo
       className={`place-popup-card ${longTitle ? 'w-88 md:w-80' : 'w-80 md:w-72'} max-w-[calc(100vw-1.25rem)] overflow-hidden rounded-2xl
                  ring-1 ring-white/10 backdrop-blur-md`}
     >
-      <div
-        className="h-28 bg-cover bg-center"
+      <Link
+        href={eventInfo ? `/events/${eventInfo.id}` : `/places/${place.id}`}
+        className="relative h-28 bg-cover bg-center block focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60
+                   transition-transform duration-300 ease-out hover:scale-[1.04] will-change-transform
+                   hover:brightness-105 overflow-hidden"
         style={{ backgroundImage: `url(${(eventInfo?.image) || place.image})` }}
-        role="img"
-        aria-label={`${eventInfo ? eventInfo.title : place.name} photo`}
-      />
+        aria-label={`Open ${eventInfo ? 'event ' + eventInfo.title : 'place ' + place.name}`}
+        title={eventInfo ? `View event: ${eventInfo.title}` : `View place: ${place.name}`}
+      >
+        <span className="sr-only">{eventInfo ? 'View event' : 'View place'}</span>
+        {/* Decorative top-left indicator (not a separate button) */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-full
+                     bg-black/45 dark:bg-black/55 backdrop-blur-sm px-2.5 py-1 text-[10px] font-medium tracking-wide
+                     text-white ring-1 ring-white/15 shadow-sm select-none"
+        >
+          {eventInfo ? 'View event' : 'View place'}
+          <ArrowRight className="h-3 w-3 opacity-80" />
+        </span>
+        {/* Subtle gradient sheen on hover for affordance */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300
+                     bg-gradient-to-tr from-black/25 via-transparent to-black/10" />
+      </Link>
       <div className="p-3">
         {/* Title + date: medium titles forced single line; long titles can wrap (clamped) */}
         {longTitle ? (
@@ -98,70 +118,52 @@ export default function PlacePopupCard({ place, onClose }: { place: Place; onClo
             {place.name}
           </Link>
         </div>
-        {/* Third row: event kind + tags */}
-        <div className="mt-2 flex flex-wrap items-center gap-1">
-          {[
-            eventInfo?.kind ? { key: `kind-${eventInfo.kind}`, label: eventInfo.kind, kind: eventInfo.kind, isKind: true } : null,
-            ...place.tags
-              .filter(t => !eventInfo?.kind || t.toLowerCase() !== eventInfo.kind.toLowerCase())
-              .slice(0,3)
-              .map(t => ({ key: t, label: t, kind: undefined, isKind: false }))
-          ].filter(Boolean).map((t: any) => {
-            const common = 'rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/50';
-            if (t.isKind) {
-              const rawKind = t.label as EventType
-              const display = EVENT_TYPE_LABELS[rawKind] || rawKind
+        {/* Third row: event kind + tags + close */}
+        <div className="mt-2 flex items-start">
+          <div className="flex flex-wrap items-center gap-1 flex-1 pr-2">
+            {[
+              eventInfo?.kind ? { key: `kind-${eventInfo.kind}`, label: eventInfo.kind, kind: eventInfo.kind, isKind: true } : null,
+              ...place.tags
+                .filter(t => !eventInfo?.kind || t.toLowerCase() !== eventInfo.kind.toLowerCase())
+                .slice(0,3)
+                .map(t => ({ key: t, label: t, kind: undefined, isKind: false }))
+            ].filter(Boolean).map((t: any) => {
+              const common = 'rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/50';
+              if (t.isKind) {
+                const rawKind = t.label as EventType
+                const display = EVENT_TYPE_LABELS[rawKind] || rawKind
+                return (
+                  <Link
+                    key={t.key}
+                    href={`/tags/${encodeURIComponent(rawKind)}`}
+                    data-kind={rawKind}
+                    className={`event-badge px-2.5 py-0.5 text-[11px] font-semibold ${common}`}
+                  >
+                    {display}
+                  </Link>
+                )
+              }
               return (
                 <Link
                   key={t.key}
-                  href={`/tags/${encodeURIComponent(rawKind)}`}
-                  data-kind={rawKind}
-                  className={`event-badge px-2.5 py-0.5 text-[11px] font-semibold ${common}`}
+                  href={`/tags/${encodeURIComponent(t.label)}`}
+                  className={`bg-violet-100/70 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200 hover:bg-violet-200/70 dark:hover:bg-violet-800/60 ${common}`}
                 >
-                  {display}
+                  {t.label}
                 </Link>
               )
-            }
-            return (
-              <Link
-                key={t.key}
-                href={`/tags/${encodeURIComponent(t.label)}`}
-                className={`bg-violet-100/70 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200 hover:bg-violet-200/70 dark:hover:bg-violet-800/60 ${common}`}
-              >
-                {t.label}
-              </Link>
-            )
-          })}
-        </div>
-
-  <div className="mt-3 flex items-center w-full">
-          {/* Softer primary button */}
-          <Link
-            href={eventInfo ? `/events/${eventInfo.id}` : `/places/${place.id}`}
-            className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/60
-                        text-violet-800 dark:text-violet-200 bg-white/70 dark:bg-zinc-900/40
-                        hover:bg-violet-50/70 dark:hover:bg-violet-900/30
-                        px-4 py-1.5 text-xs font-medium shadow-sm cursor-pointer focus:outline-none
-                        focus-visible:ring-2 focus-visible:ring-white/60 min-w-[112px] justify-center"
-          >
-            {eventInfo ? 'View event' : 'View place'}
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-
-          {/* Prominent red close button */}
+            })}
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex items-center gap-1.5 rounded-full
-                        bg-red-600/90 hover:bg-red-500 active:bg-red-700
-      text-white px-3 py-1.5 text-xs font-medium shadow-sm ml-auto
-                        cursor-pointer select-none transition
-                        focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-[.98]"
             aria-label="Close popup"
-            >
-            <X className="h-3.5 w-3.5" />
-            Close
-            </button>
+            className="mt-1 -mr-1 inline-flex items-center justify-center rounded-full p-1 text-red-600 dark:text-red-400
+                       hover:text-red-500 dark:hover:text-red-300 hover:bg-red-500/10 focus:outline-none
+                       focus-visible:ring-2 focus-visible:ring-red-500/40 transition"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>
