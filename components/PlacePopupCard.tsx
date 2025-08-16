@@ -119,7 +119,7 @@ export default function PlacePopupCard({ place, onClose }: { place: Place; onClo
           </Link>
         </div>
         {/* Third row: event kind + tags + close */}
-        <div className="mt-2 flex items-start">
+  <div className="mt-2 flex items-center">
           <div className="flex flex-wrap items-center gap-1 flex-1 pr-2">
             {[
               eventInfo?.kind ? { key: `kind-${eventInfo.kind}`, label: eventInfo.kind, kind: eventInfo.kind, isKind: true } : null,
@@ -158,11 +158,13 @@ export default function PlacePopupCard({ place, onClose }: { place: Place; onClo
             type="button"
             onClick={onClose}
             aria-label="Close popup"
-            className="mt-1 -mr-1 inline-flex items-center justify-center rounded-full p-1 text-red-600 dark:text-red-400
-                       hover:text-red-500 dark:hover:text-red-300 hover:bg-red-500/10 focus:outline-none
-                       focus-visible:ring-2 focus-visible:ring-red-500/40 transition"
+            className="ml-2 relative inline-flex h-6 w-6 items-center justify-center rounded-full group
+                       text-[#FF2800] dark:text-[#FF4a26] ring-1 ring-[#FF2800]/70 dark:ring-[#FF2800]/60
+                       focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2800]/70
+                       transition-colors"
           >
-            <X className="h-4 w-4" />
+            <span aria-hidden className="absolute inset-0 rounded-full bg-[#FF2800]/35 dark:bg-[#FF2800]/40 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-300" />
+            <X className="h-3.5 w-3.5 relative z-[1] transition-colors group-hover:text-[#ff3d19] dark:group-hover:text-[#ff6a47]" />
           </button>
         </div>
       </div>
