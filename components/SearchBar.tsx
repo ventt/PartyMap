@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, MapPin, CalendarDays, User2, Tag, LocateFixed, Eraser, Minimize2 } from 'lucide-react'
+import { Search, MapPin, CalendarDays, User2, Tag, Eraser, Minimize2 } from 'lucide-react'
 import type { SearchHit } from '@/lib/types'
 import { usePathname, useRouter } from 'next/navigation'
 
@@ -309,18 +309,33 @@ export default function SearchBar() {
                       className={`item ${phase === 'enter' ? 'item-enter' : ''} ${phase === 'leave' ? 'item-leave' : ''}`}
                     >
                       <div className="flex items-center gap-3 px-4 py-3 hover:bg-violet-50/70 dark:hover:bg-violet-900/30 transition-colors">
-                        <Link
-                          href={hit.href}
-                          onClick={() => closeDropdown()}
-                          className="flex flex-1 items-center gap-3 min-w-0"
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (placeIdForFocus) {
+                              if (pathname !== '/') {
+                                router.push(`/?focus=${encodeURIComponent(placeIdForFocus)}`)
+                                closeDropdown()
+                                return
+                              }
+                              emitHighlight([placeIdForFocus])
+                              emitOpenPlacePopup(placeIdForFocus)
+                              closeDropdown()
+                            } else {
+                              // No place to focus (e.g. tag); fallback to navigation
+                              router.push(hit.href)
+                              closeDropdown()
+                            }
+                          }}
+                          className="flex flex-1 items-center gap-3 min-w-0 text-left group focus:outline-none"
                         >
-                          <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-white/20">
+                          <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-white/20 group-hover:ring-violet-400/50 transition-colors">
                             <Image src={hit.image} alt={hit.title} fill sizes="40px" className="object-cover" />
                             <span className="absolute bottom-0 left-0 right-0 text-[10px] font-medium uppercase tracking-wide bg-black/40 text-white text-center leading-tight">{hit.type.charAt(0)}</span>
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">{hit.title}</span>
+                              <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50 group-hover:text-violet-700 dark:group-hover:text-violet-300 transition-colors">{hit.title}</span>
                               <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide ring-1 ${meta.bg} ${meta.ring} ${meta.fg}`}>
                                 {meta.icon}
                                 {meta.label}
@@ -333,29 +348,16 @@ export default function SearchBar() {
                               <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200 tabular-nums">{dateLabel}</span>
                             </div>
                           )}
+                        </button>
+                        <Link
+                          href={hit.href}
+                          onClick={(e) => { e.stopPropagation(); closeDropdown() }}
+                          className="ml-2 flex-shrink-0 inline-flex items-center justify-center rounded-full px-3 py-1 text-[11px] font-medium
+                                     border border-violet-400/50 text-violet-700 dark:text-violet-200 bg-white/60 dark:bg-zinc-900/40
+                                     hover:bg-violet-50/80 dark:hover:bg-violet-900/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 shadow-sm"
+                        >
+                          View
                         </Link>
-                        {placeIdForFocus && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              if (pathname !== '/') {
-                                // Navigate to home with focus param so map can handle popup
-                                router.push(`/?focus=${encodeURIComponent(placeIdForFocus)}`)
-                                closeDropdown()
-                                return
-                              }
-                              emitHighlight([placeIdForFocus])
-                              emitOpenPlacePopup(placeIdForFocus)
-                              closeDropdown()
-                            }}
-                            title="Focus on map"
-                            className="flex-shrink-0 inline-flex items-center justify-center rounded-full h-7 w-7 text-violet-600 dark:text-violet-300 hover:bg-violet-100/70 dark:hover:bg-violet-800/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
-                          >
-                            <LocateFixed className="h-4 w-4" />
-                          </button>
-                        )}
                       </div>
                     </li>
                   )
